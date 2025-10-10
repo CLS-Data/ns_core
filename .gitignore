@@ -1,0 +1,52 @@
+/data/
+/data_clean/
+/.Rhistory
+.DS_Store
+
+# R files
+.Rhistory
+.Rapp.history
+.RData
+*.Rproj.user/
+.Ruserdata
+*.Rproj
+*.RData
+*.rds
+*.rda
+*.Rhistory
+.Rhistory
+
+# R Markdown and knitr
+*.utf8.md
+*.knit.md
+cache/
+*_cache/
+*.log
+*.html
+
+# Sensitive data & derived datasets
+*.csv
+*.xlsx
+*.sav
+*.dta
+*.tsv
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# VSCode / RStudio
+.vscode/
+.idea/
+
+# Git folder safety
+.git/
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
