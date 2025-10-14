@@ -490,20 +490,23 @@ educ_all <- educ_all %>%
       W8EDUS == 2 & educ17 > 0 ~ educ17,
       W8ACQU0A == 1 | W8ACQU0B == 1 | W8ACQU0C == 1 |
       W8ACQU0D == 1 | W8ACQU0E == 1 |
-        W8VCQU0K == 1 | W8VCQU0M == 1 | W8VCQU0N == 1 ~ 2,
+        W8VCQU0J == 1 | W8VCQU0K == 1  ~ 2,
      W8ACQU0F == 1 | W8ACQU0G ==1 | W8ACQU0H ==1 | 
      W8ACQU0I == 1 | W8ACQU0J == 1 | W8ACQU0K == 1| 
      W8ACQU0L == 1 | W8ACQU0M == 1 | 
        W8VCQU0A == 1 | W8VCQU0B == 1 | W8VCQU0C == 1 |
-       W8VCQU0D == 1 | W8VCQU0E == 1 | W8VCQU0F == 1 | 
-       W8VCQU0G == 1 | W8VCQU0H == 1 | W8VCQU0I == 1 | 
-       W8VCQU0J == 1 | W8VCQU0L == 1   ~ 1,
+       W8VCQU0E == 1 | W8VCQU0F == 1 | W8VCQU0G == 1 | 
+       W8VCQU0H == 1 | W8VCQU0I == 1 | 
+       W8VCQU0L == 1 | W8VCQU0M == 1 | W8VCQU0N == 1 ~ 1,
+     W8VCQU0D == 1 |W8VCQU0P == 1 ~ 0,
+     W8ACQU0N == 1 | 
+       W8VCQU0O ==1 ~ 3,
      W8ACQU0O == 1 | 
-       W8VCQU0P == 1 ~ 0,
+       W8ACQU0P == 1 ~ 4,
      W8ACQU0Q == 1 | 
        W8VCQU0R == 1 ~ -9,
-     W8ACQU0N == 1 | W8ACQU0P == 1 | 
-       W8VCQU0O ==1 | W8VCQU0Q == 1 ~ -8,
+     W8ACQU0P == 1 |
+       W8VCQU0Q == 1 ~ -8,
      TRUE ~ -3
     ),
     
@@ -512,23 +515,26 @@ educ_all <- educ_all %>%
       W9ACQU0A == 1 | W9ACQU0B == 1 | W9ACQU0C == 1 |
       W9ACQU0D == 1 | W9ACQU0E == 1 | W9ACQU0F == 1 |
         W9VCQU0A == 1 | W9VCQU0B == 1 | W9VCQU0C == 1 |
-        W9VCQU0V == 1 | W9VCQUAC == 1 ~ 2,
+        W9VCQU0S == 1 | W9VCQU0V == 1 | W9VCQUAC == 1 ~ 2,
       W9ACQU0G == 1 | W9ACQU0H == 1 | W9ACQU0I == 1 | 
       W9ACQU0J == 1 | W9ACQU0K == 1 | W9ACQU0L == 1 | 
-      W9ACQU0M == 1 | W9ACQU0N == 1 | W9ACQU0O == 1 | 
+      W9ACQU0M == 1 | W9ACQU0O == 1 | 
       W9ACQU0P == 1 | W9ACQU0Q == 1 | 
         W9VCQU0D == 1 | W9VCQU0E == 1 | W9VCQU0F == 1 |
         W9VCQU0G == 1 | W9VCQU0H == 1 | W9VCQU0I == 1 |
         W9VCQU0L == 1 | W9VCQU0M == 1 | W9VCQU0N == 1 |
         W9VCQU0O == 1 | W9VCQU0P == 1 | W9VCQU0Q == 1 | 
-        W9VCQU0R == 1 | W9VCQU0S == 1 | W9VCQU0T == 1 | 
+        W9VCQU0R == 1 | W9VCQU0T == 1 | 
         W9VCQU0U == 1 | W9VCQU0W == 1 | W9VCQU0X == 1 |
         W9VCQU0Y == 1 | W9VCQU0Z == 1 | W9VCQUAA == 1 | 
         W9VCQUAB == 1 | W9VCQUAD == 1 | W9VCQUAE == 1 ~ 1,
-      W9ACQU0S == 1 | 
-        W9VCQUAG == 1 ~ 0,
-      W9ACQU0T == 1 | W9ACQU0R == 1 | 
-        W9VCQUAF == 1 | W9VCQUAH == 1 ~ -8,
+      W9ACQU0N == 1  ~ 0,
+      W9ACQU0R | 
+        W9VCQUAF == 1 == 1 ~ 3,
+      W9ACQU0S == 1 |
+        W9VCQUAG == 1 ~ 4,
+      W9ACQU0T == 1  | 
+        W9VCQUAH == 1 ~ -8,
       W9ACQU0U == 1 | 
         W9VCQUAI == 1 ~ -9,
       TRUE ~ -3
