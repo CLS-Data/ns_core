@@ -15,12 +15,11 @@
 | Domain            | Examples                                                         |
 | ----------------- | ---------------------------------------------------------------- |
 | Demographics      | sex, ethnicity, language, sexuality, partnership, region,        |
-| Socio‑economic    | own economic activity, parental economic activity,  own NSSEC, parental NSSEC, home ownership, household income, IMD |
 | Education         | qualifications, parents' qualifications.                         |
-| Wellbeing         | psychological distress, life satisfaction, self-harm,anxiety, depression, loneliness                                           |
-| Health            | weight, height, BMI,  long-term illness, self‑rated health       |
-| Health behaviours | smoking, alcohol consumption, drug consumption, exercise         |
-| Risk factors      | crime, school absence, suspended, expelled, truancy, policy contact, bullying victimisation                           |
+| Socioeconomic     | own economic activity, parental economic activity,  own NSSEC, parental NSSEC, home ownership, household income, IMD |
+| Physical and mental health         | psychological distress, life satisfaction, self-harm,anxiety, depression, loneliness, long-term illness, self‑rated health    |
+| Anthropometrics   | weight, height, BMI |
+| Behaviours        | smoking, alcohol, drug, exercise, school absence, policy contact, bullying victimisation  |
 
 *See `ns_mseu_userguide.docx` for full details.*
 
