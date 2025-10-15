@@ -30,6 +30,8 @@ cache/
 *.sav
 *.dta
 *.tsv
+*.docx
+*.doc
 
 # OS-specific
 .DS_Store
@@ -50,3 +52,4 @@ logs/
 *.tmp
 *.bak
 *.swp
+.Rproj.user
