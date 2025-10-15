@@ -529,8 +529,8 @@ educ_all <- educ_all %>%
         W9VCQU0Y == 1 | W9VCQU0Z == 1 | W9VCQUAA == 1 | 
         W9VCQUAB == 1 | W9VCQUAD == 1 | W9VCQUAE == 1 ~ 1,
       W9ACQU0N == 1  ~ 0,
-      W9ACQU0R | 
-        W9VCQUAF == 1 == 1 ~ 3,
+      W9ACQU0R ==1 | 
+        W9VCQUAF == 1 ~ 3,
       W9ACQU0S == 1 |
         W9VCQUAG == 1 ~ 4,
       W9ACQU0T == 1  | 
@@ -588,7 +588,8 @@ parent_edu_all <- parent_edu_all %>%
       educma_dtl %in% 1:4 ~ 2,
       educma_dtl %in% 5:17 ~ 1,
       educma_dtl == 18 ~ 0,
-      educma_dtl == 20 ~ 0,
+      educma_dtl == 19 ~ 3, # other
+      educma_dtl == 20 ~ 4, # none of these qualifications
       TRUE ~ educma_dtl  # keep negatives as-is
     ),
     #father full education (aggregate the information from sweeps 1-4)
@@ -606,7 +607,8 @@ parent_edu_all <- parent_edu_all %>%
       educpa_dtl %in% 1:4 ~ 2,
       educpa_dtl %in% 5:17 ~ 1,
       educpa_dtl == 18 ~ 0,
-      educpa_dtl == 20 ~ 0,
+      educpa_dtl == 19 ~ 3, 
+      educpa_dtl == 20 ~ 4,
       TRUE ~ educpa_dtl  # keep negatives as-is
     )
   )%>%
@@ -2886,4 +2888,4 @@ derived_all <- set_variable_labels(
   bul25 = "Bullying victimisation (age 25y)"
 )
 
-write.csv(derived_all, file =  "derived_variables.csv", row.names = FALSE)
+write_dta(derived_all, "derived_variables.dta")
