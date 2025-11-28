@@ -29,7 +29,8 @@ sweeps <- list(
   S8selfcompletion = "ns8_2015_self_completion.dta",
   S8derivedvariable = "ns8_2015_derived.dta",
   S9maininterview = "ns9_2022_main_interview.dta",
-  S9derivedvariable = "ns9_2022_derived_variables.dta")
+  S9derivedvariable = "ns9_2022_derived_variables.dta",
+  longitudinal = "ns9_2022_longitudinal_file.dta")
 
 
 # Load all datasets
@@ -118,6 +119,14 @@ sex_all <- sex_all %>%
       TRUE ~ sex_final      # handle others or missing
     )
   ) %>%
+  mutate(sex = factor(sex, 
+                      levels = c(0, 1, -1, -3, -9), 
+                      labels = c("male", 
+                                 "female", 
+                                 "Item not applicable", 
+                                 "Not asked at the fieldwork stage/participated/interviewed", 
+                                 "Refusal"))
+         ) %>%
   select(NSID, sex)
 
 #### ethnicity ####
@@ -173,6 +182,30 @@ eth_all <- eth_all %>%
       TRUE ~ -3  # Not interviewed/present
     )
   )%>%
+  mutate(eth = factor(eth, 
+                      levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, -1, -2, -3, -8, -9), 
+                      labels = c("White-British", 
+                                 "White-Irish", 
+                                 "Any other White background",
+                                 "Mixed-White and Black Caribbean",
+                                 "Mixed-White and Black African",
+                                 "Mixed-White and Asian",
+                                 "Any other Mixed background",
+                                 "Asian or Asian British-Indian",
+                                 "Asian or Asian British-Pakistani",
+                                 "Asian or Asian British-Bangladeshi",
+                                 "Any other Asian background",
+                                 "Black or Black British-Caribbean",
+                                 "Black or Black British-African",
+                                 "Any other Black background",
+                                 "Chinese",
+                                 "Any other background",
+                                 "Item not applicable", 
+                                 "Script error/information lost",
+                                 "Not asked at the fieldwork stage/participated/interviewed", 
+                                 "Don’t know/insufficient information",
+                                 "Refusal"))
+  ) %>%
   select(NSID, eth)
 
 #### language ####
@@ -217,6 +250,18 @@ lang_all <- lang_all %>%
       TRUE ~ -3  # Not interviewed/present
     )
   )%>%
+  mutate(lang = factor(lang, 
+                      levels = c(1, 2, 3, 4, -1, -2, -3, -8, -9), 
+                      labels = c("English only",
+                                 "English first/main and speaks other languages",
+                                 "Another language is respondent’s first or main language",
+                                 "Bilingual",
+                                 "Item not applicable", 
+                                 "Script error/information lost",
+                                 "Not asked at the fieldwork stage/participated/interviewed", 
+                                 "Don’t know/insufficient information",
+                                 "Refusal"))
+  ) %>%
   select(NSID, lang)
 
 #### sexual orientation ####
@@ -286,6 +331,19 @@ sexuality_all <- sexuality_all %>%
       TRUE ~ -3
     )
   ) %>%
+  mutate(across(starts_with("sori"), ~ factor(.x, 
+                       levels = c(1, 2, 3, 4, -1, -2, -3, -7, -8, -9), 
+                       labels = c("Heterosexual/straight",
+                                  "Gay/lesbian",
+                                  "Bisexual",
+                                  "Other",
+                                  "Item not applicable", 
+                                  "Script error/information lost",
+                                  "Not asked at the fieldwork stage/participated/interviewed", 
+                                  "Prefer not to say",
+                                  "Don’t know/insufficient information",
+                                  "Refusal")))
+  ) %>%
   select(NSID, sori19, sori20, sori25, sori32)
 
 #### partnership ####
@@ -295,8 +353,6 @@ partnr_vars <- list(
     select(NSID),
   S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>% 
     select(NSID),
-  S5 = read_dta(file.path(data_path, sweeps$S5youngperson)) %>% 
-    select(NSID, partnr18 = W5Marstat2YP),
   S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>% 
     select(NSID, partnr19 = W6MarStatYP),
   S8 = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>% 
@@ -311,19 +367,8 @@ partnr_all <- reduce(partnr_vars, full_join, by = "NSID")
 # recode missing values and response categories
 partnr_all <- partnr_all %>%
   mutate(
-    partnr18 = case_when(
-      partnr18 == 1 ~ 1,         # married/civil partner
-      partnr18 == 2 ~ 0, # engaged or neither → single
-      partnr18 == 3 ~ 2, #  neither → other
-      partnr18 == -92 ~ -9,
-      partnr18 == -91 ~ -1,
-      partnr18 == -1  ~ -8,
-      TRUE ~ -3
-    ),
     partnr19 = case_when(
-      partnr19 == 2 ~ 1,
-      partnr19 == 1 ~ 0,
-      partnr19 %in% c(3, 4, 5) ~ 2,
+      partnr19 > 0 ~ partnr19-1,
       partnr19 == -92 ~ -9,
       partnr19 == -91 ~ -1,
       partnr19 == -1 ~ -8,
@@ -331,18 +376,22 @@ partnr_all <- partnr_all %>%
       TRUE ~ -3
     ),
     partnr25 = case_when(
-      partnradu25 %in% c(2, 6) ~ 1,
       partnradu25 == 1 ~ 0,
-      partnradu25 %in% c(3,4,5,7,8,9) ~ 2,
+      partnradu25 %in% c(2,6) ~ 1,
+      partnradu25 %in% c(3,7) ~ 2,
+      partnradu25 %in% c(4,8) ~ 3 ,
+      partnradu25 %in% c(5,9) ~ 4,
       partnradu25 == -9 ~ -9,
       partnradu25 == -8 ~ -8,
       partnradu25 == -1 ~ -1,
       TRUE ~ -3
     ),
     partnr32 = case_when(
-      partnradu32 %in% c(2,6) ~ 1,
       partnradu32 == 1 ~ 0,
-      partnradu32 %in% c(3,4,5,7,8,9) ~ 2,
+      partnradu32 %in% c(2,6) ~ 1,
+      partnradu32 %in% c(3,7) ~ 2,
+      partnradu32 %in% c(4,8) ~ 3 ,
+      partnradu32 %in% c(5,9) ~ 4,
       partnradu32 == -9 ~ -9,
       partnradu32 == -8 ~ -8,
       partnradu32 == -1 ~ -1,
@@ -368,7 +417,34 @@ partnr_all <- partnr_all %>%
       TRUE ~ -3
     )
   )%>%
-  select(NSID, partnr18, partnr19, partnr25, partnr32,
+  mutate(across(c(partnr19, partnr25, partnr32), ~ factor(.x, 
+                                              levels = c(0, 1, 2, 3, 4, -1, -3, -8, -9), 
+                                              labels = c("Single and never married or in a CP",
+                                                         "Married",
+                                                         "Separated but still legally married/in a CP",
+                                                         "Divorced/former CP",
+                                                         "Widowed/surviving CP",
+                                                         "Item not applicable", 
+                                                         "Not asked at the fieldwork stage/participated/interviewed", 
+                                                         "Don’t know/insufficient information",
+                                                         "Refusal"))),
+         across(c(partnradu25, partnradu32), ~ factor(.x, 
+                                              levels = c(0, 1, 2, 3, 4, 5, 6, 7, 8, -1, -3, -8, -9), 
+                                              labels = c("Single and never married or in a CP",
+                                                         "Married",
+                                                         "Separated but still legally married",
+                                                         "Divorced",
+                                                         "Widowed",
+                                                         "A civil partner",
+                                                         "Separated but still legally in a CP",
+                                                         "A former civil partner",
+                                                         "A surviving civil partner",
+                                                         "Item not applicable", 
+                                                         "Not asked at the fieldwork stage/participated/interviewed", 
+                                                         "Don’t know/insufficient information",
+                                                         "Refusal")))
+  ) %>%
+  select(NSID, partnr19, partnr25, partnr32,
          partnradu25, partnradu32)
 
 #### region ####
@@ -417,14 +493,75 @@ region_all <- region_all %>%
   ))) %>%
   
   mutate(regint32 = case_when(
-    regint32 == 1 ~ 1,   # in the UK
-    regint32 == 2 ~ 2,   # abroad
+    regint32 %in% c(1,2,3,4) ~ 1,   # in the UK
+    regint32 == 5 ~ 2,   # abroad
     regint32 == -9 ~ -9,
     regint32 == -8 ~ -8,
     regint32 == -3 ~ -3,
     regint32 == -1 ~ -1,
     TRUE ~ -3
   ))%>%
+  mutate(across(c(regub15, regub16), ~ factor(.x, 
+                                              levels = c(1, 2, 3, 4, 5, 6, 7, 8, -1, -2, -3, -7, -8, -9), 
+                                              labels = c("Urban >=10k – sparse",
+                                                         "Town & Fringe – sparse",
+                                                         "Village – sparse",
+                                                         "Hamlet and Isolated Dwelling – sparse",
+                                                         "Urban >= 10k - less sparse",
+                                                         "Town & Fringe - less sparse",
+                                                         "Village - less sparse",
+                                                         "Hamlet and Isolated Dwelling - less sparse",
+                                                         "Item not applicable", 
+                                                         "Script error/information lost",
+                                                         "Not asked at the fieldwork stage/participated/interviewed", 
+                                                         "Prefer not to say",
+                                                         "Don’t know/insufficient information",
+                                                         "Refusal"))),
+         across(c(regov15, regov16), ~ factor(.x, 
+                                              levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, -1, -2, -3, -7, -8, -9), 
+                                              labels = c("North East",
+                                                         "North West",
+                                                         "Yorkshire and The Humber",
+                                                         "East Midlands",
+                                                         "West Midlands",
+                                                         "East of England",
+                                                         "London",
+                                                         "South East",
+                                                         "South West",
+                                                         "Item not applicable", 
+                                                         "Script error/information lost",
+                                                         "Not asked at the fieldwork stage/participated/interviewed", 
+                                                         "Prefer not to say",
+                                                         "Don’t know/insufficient information",
+                                                         "Refusal"))),
+         across(c(regor25, regor32), ~ factor(.x, 
+                                              levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, -1, -2, -3, -8, -9), 
+                                              labels = c("North East",
+                                                         "North West",
+                                                         "Yorkshire and The Humber",
+                                                         "East Midlands",
+                                                         "West Midlands",
+                                                         "East of England",
+                                                         "London",
+                                                         "South East",
+                                                         "South West",
+                                                         "Wales",
+                                                         "Scotland",
+                                                         "Northern Ireland",
+                                                         "Item not applicable", 
+                                                         "Script error/information lost",
+                                                         "Not asked at the fieldwork stage/participated/interviewed", 
+                                                         "Don’t know/insufficient information",
+                                                         "Refusal"))),
+         regint32 = factor(regint32, 
+                           levels = c(1, 2, -1, -3, -8, -9), 
+                           labels = c("In the UK",
+                                      "Abroad",
+                                      "Item not applicable", 
+                                      "Not asked at the fieldwork stage/participated/interviewed", 
+                                      "Don’t know/insufficient information",
+                                      "Refusal"))
+  ) %>%
   select(NSID, regub15, regov15, regub16, regov16,
          regor25, regor32, regint32)
 
@@ -453,10 +590,10 @@ educ_all <- educ_all %>%
   mutate(
     # Sweep 4
     educ17 = case_when(
-      educ17_raw %in% 1:9 ~ 1, # NVQ 1-3
-      educ17_raw == 10 ~ 0, # none/entry
-      educ17_raw %in% 11:13 ~ -2, # NVQ 4-5
-      educ17_raw == 14 ~ 0,
+      educ17_raw %in% c(1:9,10, 11) ~ 1, # NVQ 1-3
+      educ17_raw == 14 ~ 2, # none/entry
+      educ17_raw %in% 12 ~ 3, # other
+      educ17_raw == 13 ~ 4, # none of these
       educ17_raw == -94 ~ -2,
       educ17_raw == -91 ~ -1,
       TRUE ~ -3  # Not interviewed/present
@@ -464,10 +601,11 @@ educ_all <- educ_all %>%
     
     # Sweep 6
     educ19 = case_when(
-      educ19_raw %in% 1:4 ~ 2,
-      educ19_raw %in% 5:13 ~ 1,
-      educ19_raw %in% 14:15 ~ -2,
-      educ19_raw == 16 ~ 0,
+      educ19_raw %in% 1:4 ~ 0,
+      educ19_raw %in% 5:12 ~ 1,
+      educ19_raw == 14 ~ 3,
+      educ19_raw == 15 ~ 4,
+      educ19_raw == 16 ~ 2,
       educ19_raw == -94 ~ -2,
       educ19_raw == -91 ~ -1,
       TRUE ~ -3
@@ -475,22 +613,23 @@ educ_all <- educ_all %>%
     
     # Sweep 7
     educ20 = case_when(
-      educ20_raw %in% 10:13 ~ 2,
-      educ20_raw %in% 3:9 ~ 1,
-      educ20_raw %in% 1:2 ~ 1,
-      educ20_raw == 14 ~ -2,
+      educ20_raw %in% 10:13 ~ 0,
+      educ20_raw %in% 1:9 ~ 1,
+      educ20_raw == 14 ~ 3,
       educ20_raw == -94 ~ -2,
       educ20_raw == -91 ~ 0,
       TRUE ~ -3
     )) %>%
-  mutate(# Sweep 8
+  
+  # Sweep 8
+  mutate(
     educ25 = case_when(
       W8EDUS == 2 & educ20 > 0 ~ educ20,
       W8EDUS == 2 & educ19 > 0 ~ educ19,
       W8EDUS == 2 & educ17 > 0 ~ educ17,
       W8ACQU0A == 1 | W8ACQU0B == 1 | W8ACQU0C == 1 |
       W8ACQU0D == 1 | W8ACQU0E == 1 |
-        W8VCQU0J == 1 | W8VCQU0K == 1  ~ 2,
+        W8VCQU0J == 1 | W8VCQU0K == 1  ~ 0,
      W8ACQU0F == 1 | W8ACQU0G ==1 | W8ACQU0H ==1 | 
      W8ACQU0I == 1 | W8ACQU0J == 1 | W8ACQU0K == 1| 
      W8ACQU0L == 1 | W8ACQU0M == 1 | 
@@ -498,7 +637,7 @@ educ_all <- educ_all %>%
        W8VCQU0E == 1 | W8VCQU0F == 1 | W8VCQU0G == 1 | 
        W8VCQU0H == 1 | W8VCQU0I == 1 | 
        W8VCQU0L == 1 | W8VCQU0M == 1 | W8VCQU0N == 1 ~ 1,
-     W8VCQU0D == 1 |W8VCQU0P == 1 ~ 0,
+     W8VCQU0D == 1 |W8VCQU0P == 1 ~ 2,
      W8ACQU0N == 1 | 
        W8VCQU0O ==1 ~ 3,
      W8ACQU0O == 1 | 
@@ -515,7 +654,7 @@ educ_all <- educ_all %>%
       W9ACQU0A == 1 | W9ACQU0B == 1 | W9ACQU0C == 1 |
       W9ACQU0D == 1 | W9ACQU0E == 1 | W9ACQU0F == 1 |
         W9VCQU0A == 1 | W9VCQU0B == 1 | W9VCQU0C == 1 |
-        W9VCQU0S == 1 | W9VCQU0V == 1 | W9VCQUAC == 1 ~ 2,
+        W9VCQU0S == 1 | W9VCQU0V == 1 | W9VCQUAC == 1 ~ 0,
       W9ACQU0G == 1 | W9ACQU0H == 1 | W9ACQU0I == 1 | 
       W9ACQU0J == 1 | W9ACQU0K == 1 | W9ACQU0L == 1 | 
       W9ACQU0M == 1 | W9ACQU0O == 1 | 
@@ -528,7 +667,7 @@ educ_all <- educ_all %>%
         W9VCQU0U == 1 | W9VCQU0W == 1 | W9VCQU0X == 1 |
         W9VCQU0Y == 1 | W9VCQU0Z == 1 | W9VCQUAA == 1 | 
         W9VCQUAB == 1 | W9VCQUAD == 1 | W9VCQUAE == 1 ~ 1,
-      W9ACQU0N == 1  ~ 0,
+      W9ACQU0N == 1  ~ 2,
       W9ACQU0R ==1 | 
         W9VCQUAF == 1 ~ 3,
       W9ACQU0S == 1 |
@@ -539,6 +678,19 @@ educ_all <- educ_all %>%
         W9VCQUAI == 1 ~ -9,
       TRUE ~ -3
     )
+  ) %>%
+  mutate(across(c(educ17, educ19, educ20, educ25, educ32), ~ factor(.x, 
+                                              levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9), 
+                                              labels = c("NVQ 4-5",
+                                                         "NVQ 1-3",
+                                                         "None/entry",
+                                                         "Other",
+                                                         "None of these qualifications",
+                                                         "Item not applicable", 
+                                                         "Script error/information lost",
+                                                         "Not asked at the fieldwork stage/participated/interviewed", 
+                                                         "Don’t know/insufficient information",
+                                                         "Refusal")))
   ) %>%
   select(NSID, educ17, educ19, educ20, educ25, educ32)
 
@@ -574,7 +726,7 @@ parent_edu_all <- parent_edu_all %>%
 parent_edu_all <- parent_edu_all %>%
   mutate(
     #mother full education (aggregate the information from sweeps 1-4)
-    educma_dtl = case_when(
+    educmadtl = case_when(
       !is.na(educma_S4) & educma_S4 > 0 ~ educma_S4,
       !is.na(educma_S2) & educma_S2 > 0 ~ educma_S2,
       !is.na(educma_S1) & educma_S1 > 0 ~ educma_S1,
@@ -585,15 +737,15 @@ parent_edu_all <- parent_edu_all %>%
     ), 
     #transform to 3-level education (mother)
     educma = case_when(
-      educma_dtl %in% 1:4 ~ 2,
-      educma_dtl %in% 5:17 ~ 1,
-      educma_dtl == 18 ~ 0,
-      educma_dtl == 19 ~ 3, # other
-      educma_dtl == 20 ~ 4, # none of these qualifications
-      TRUE ~ educma_dtl  # keep negatives as-is
+      educmadtl %in% 1:4 ~ 0,
+      educmadtl %in% 5:17 ~ 1,
+      educmadtl == 18 ~ 2,
+      educmadtl == 19 ~ 3, # other
+      educmadtl == 20 ~ 4, # none of these qualifications
+      TRUE ~ educmadtl  # keep negatives as-is
     ),
     #father full education (aggregate the information from sweeps 1-4)
-    educpa_dtl = case_when(
+    educpadtl = case_when(
       !is.na(educpa_S1) & educpa_S1 > 0 ~ educpa_S1,
       !is.na(educpa_S2) & educpa_S2 > 0 ~ educpa_S2,
       !is.na(educpa_S4) & educpa_S4 > 0 ~ educpa_S4,
@@ -604,14 +756,27 @@ parent_edu_all <- parent_edu_all %>%
     ),
     #transform to 3-level education (father)
     educpa = case_when(
-      educpa_dtl %in% 1:4 ~ 2,
-      educpa_dtl %in% 5:17 ~ 1,
-      educpa_dtl == 18 ~ 0,
-      educpa_dtl == 19 ~ 3, 
-      educpa_dtl == 20 ~ 4,
-      TRUE ~ educpa_dtl  # keep negatives as-is
+      educpadtl %in% 1:4 ~ 0,
+      educpadtl %in% 5:17 ~ 1,
+      educpadtl == 18 ~ 2,
+      educpadtl == 19 ~ 3, 
+      educpadtl == 20 ~ 4,
+      TRUE ~ educpadtl  # keep negatives as-is
     )
   )%>%
+  mutate(across(c(educma, educpa), ~ factor(.x, 
+                                            levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9), 
+                                            labels = c("NVQ 4-5",
+                                                       "NVQ 1-3",
+                                                       "None/entry",
+                                                       "Other",
+                                                       "None of these qualifications",
+                                                       "Item not applicable", 
+                                                       "Script error/information lost",
+                                                       "Not asked at the fieldwork stage/participated/interviewed", 
+                                                       "Don’t know/insufficient information",
+                                                       "Refusal")))
+  ) %>%
   select(NSID, educma, educpa)
 
 
@@ -719,6 +884,39 @@ ecoact_all <- ecoact_all %>%
       is.na(ecoactadu32) ~ -3
     )
   ) %>%
+  mutate(across(c(ecoact17, ecoact18, ecoact19, ecoact20,ecoact25, ecoact32), 
+                ~ factor(.x, 
+                         levels = c(1, 2, 3, 4, 5, 6, -1, -2, -3, -8, -9), 
+                         labels = c("In paid work",
+                                    "Apprenticeship/government training scheme/training",
+                                    "Education",
+                                    "Unemployed",
+                                    "Looking after home",
+                                    "Other",
+                                    "Item not applicable", 
+                                    "Script error/information lost",
+                                    "Not asked at the fieldwork stage/participated/interviewed", 
+                                    "Don’t know/insufficient information",
+                                    "Refusal"))),
+         across(c(ecoactadu25, ecoactadu32),
+                ~ factor(.x, 
+                         levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, -1, -2, -3, -8, -9), 
+                         labels = c("employee – in paid work",
+                                    "self employed",
+                                    "voluntary work",
+                                    "Unemployed",
+                                    "Education",
+                                    "Apprenticeship",
+                                    "government employment scheme",
+                                    "sick/disabled",
+                                    "Looking after home/family",
+                                    "Something else",
+                                    "Item not applicable", 
+                                    "Script error/information lost",
+                                    "Not asked at the fieldwork stage/participated/interviewed", 
+                                    "Don’t know/insufficient information",
+                                    "Refusal")))
+  ) %>%
   select(NSID, ecoact17, ecoact18, ecoact19, ecoact20,
          ecoact25, ecoact32, ecoactadu25, ecoactadu32)
 
@@ -771,6 +969,24 @@ ecoactDT_parents_all <- ecoactDT_parents_all %>%
     ecoactdtma17 = recode_detailed(ecoactdtma17),
     ecoactdtpa17 = recode_detailed(ecoactdtpa17)
   )%>%
+  mutate(across(c(starts_with("ecoactdtma"), starts_with("ecoactdtpa")), 
+                ~ factor(.x, 
+                         levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, -1, -2, -3, -8, -9), 
+                         labels = c("FT paid work",
+                                    "PT paid work",
+                                    "Unemployed",
+                                    "Training",
+                                    "Education",
+                                    "Looking after home/family",
+                                    "Retired from work altogether",
+                                    "Sick/disabled",
+                                    "Other",
+                                    "Item not applicable", 
+                                    "Script error/information lost",
+                                    "Not asked at the fieldwork stage/participated/interviewed", 
+                                    "Don’t know/insufficient information",
+                                    "Refusal")))
+  ) %>%
   select(NSID, starts_with("ecoactdtma"), starts_with("ecoactdtpa"))
 
 #### NS-SEC own ####
@@ -786,7 +1002,7 @@ nssec_vars <- list(
   S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
     select(NSID, nssec20 = W7NSSECCat),
   S8 = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>%
-    select(NSID, nssec25 = W8DNSSEC17),
+    select(NSID, nssec25 = W8DNSSEC17, ecoactadu25 = W8DACTIVITYC),
   S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
     select(NSID, nssec32 = W9NSSEC)
 )
@@ -833,8 +1049,10 @@ nssec_all <- nssec_all %>%
     nssec25 = case_when(
       is.na(nssec25) ~ -3,
       floor(nssec25) %in% 1:14 ~ floor(nssec25),
-      nssec25 == -1 ~ -8,
-      TRUE ~ -3
+      ecoactadu25 == 5 ~ 15, # full-time student
+      nssec25 == -9 ~ -9,
+      nssec25 == -8 ~ -8,
+      nssec25 == -1 ~ -1,
     ),
     ## Sweep 9 (age 32)
     nssec32 = case_when(
@@ -842,9 +1060,34 @@ nssec_all <- nssec_all %>%
       nssec32 %in% 1:17 ~ nssec32,
       nssec32 == -9 ~ -9,
       nssec32 == -8 ~ -8,
-      nssec32 == -1 ~ -1,
-      TRUE ~ NA_real_
+      nssec32 == -1 ~ -1
     )
+  ) %>%
+  mutate(across(starts_with("nssec"), 
+                ~ factor(.x, 
+                         levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, -1, -2, -3, -8, -9), 
+                         labels = c("Employers in large organisations",
+                                    "Higher managerial and administrative occupations",
+                                    "Higher professional occupations",
+                                    "Lower professional and higher technical occupations",
+                                    "Lower managerial and administrative occupations",
+                                    "Higher supervisory occupations",
+                                    "Intermediate occupations",
+                                    "Employers in small establishments",
+                                    "Own account workers",
+                                    "Lower supervisory occupations",
+                                    "Lower technical occupations",
+                                    "Semi-routine occupations",
+                                    "Routine occupations",
+                                    "Never worked and long-term unemployed",
+                                    "Full-time student",
+                                    "Not classified or inadequately stated",
+                                    "Not classifiable for other reasons",
+                                    "Item not applicable", 
+                                    "Script error/information lost",
+                                    "Not asked at the fieldwork stage/participated/interviewed", 
+                                    "Don’t know/insufficient information",
+                                    "Refusal")))
   ) %>%
   select(NSID, nssec17, nssec18, nssec19, nssec20, nssec25, nssec32)
 
@@ -890,6 +1133,32 @@ nssec_parents_all <- nssec_parents_all %>%
     nssecma18 = recode_nssec_detail(nssecma18),
     nssecpa18 = recode_nssec_detail(nssecpa18)
   ) %>%
+  mutate(across(c(starts_with("nssecma"), starts_with("nssecpa")),
+                ~ factor(.x, 
+                         levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, -1, -2, -3, -8, -9), 
+                         labels = c("Employers in large organisations",
+                                    "Higher managerial and administrative occupations",
+                                    "Higher professional occupations",
+                                    "Lower professional and higher technical occupations",
+                                    "Lower managerial and administrative occupations",
+                                    "Higher supervisory occupations",
+                                    "Intermediate occupations",
+                                    "Employers in small establishments",
+                                    "Own account workers",
+                                    "Lower supervisory occupations",
+                                    "Lower technical occupations",
+                                    "Semi-routine occupations",
+                                    "Routine occupations",
+                                    "Never worked and long-term unemployed",
+                                    "Full-time student",
+                                    "Not classified or inadequately stated",
+                                    "Not classifiable for other reasons",
+                                    "Item not applicable", 
+                                    "Script error/information lost",
+                                    "Not asked at the fieldwork stage/participated/interviewed", 
+                                    "Don’t know/insufficient information",
+                                    "Refusal")))
+  ) %>%
   select(NSID, nssecma14, nssecpa14, nssecma15, nssecpa15, 
          nssecma16, nssecpa16, nssecma17, nssecpa17, nssecma18, nssecpa18)
 
@@ -929,8 +1198,7 @@ hown_all <- hown_all %>%
       hown14 == -92 ~ -9,
       hown14 == -91 ~ -1,
       hown14 == -1 ~ -8,
-      is.na(hown14) ~ -3,
-      TRUE ~ -2
+      is.na(hown14) ~ -3
     ),
     hownteen15 = case_when(
       hown15 > 0 ~ hown15,
@@ -938,8 +1206,7 @@ hown_all <- hown_all %>%
       hown15 == -92 ~ -9,
       hown15 == -91 ~ -1,
       hown15 == -1 ~ -8,
-      is.na(hown15) ~ -3,
-      TRUE ~ -2
+      is.na(hown15) ~ -3
     ),
     hownteen16 = case_when(
       hown16 > 0 ~ hown16,
@@ -947,8 +1214,7 @@ hown_all <- hown_all %>%
       hown16 == -92 ~ -9,
       hown16 == -91 ~ -1,
       hown16 == -1 ~ -8,
-      is.na(hown16) ~ -3,
-      TRUE ~ -2
+      is.na(hown16) ~ -3
     ),
     hownteen17 = case_when(
       hown17 > 0 ~ hown17,
@@ -956,8 +1222,7 @@ hown_all <- hown_all %>%
       hown17 == -92 ~ -9,
       hown17 == -91 ~ -1,
       hown17 == -1 ~ -8,
-      is.na(hown17) ~ -3,
-      TRUE ~ -2
+      is.na(hown17) ~ -3
     ),
     hownteen18 = case_when(
       W5Hous12BHH == 1 ~ 1, # Owned outright
@@ -971,8 +1236,7 @@ hown_all <- hown_all %>%
       W5Hous12BHH %in% c(-999, -92) | W5Hous12CHH == -92 ~ -9,
       W5Hous12BHH == -91 | W5Hous12CHH == -91 ~ -1,
       W5Hous12BHH == -1 | W5Hous12CHH == -1 ~ -8,
-      is.na(W5Hous12BHH) & is.na(W5Hous12CHH) ~ -3,
-      TRUE ~ -2
+      is.na(W5Hous12BHH) & is.na(W5Hous12CHH) ~ -3
     ),
     hownteen19 = case_when(
       W6Hous12bYP == 1 ~ 1,
@@ -986,8 +1250,7 @@ hown_all <- hown_all %>%
       W6Hous12bYP %in% c(-999, -92) | W6Hous12cYP == -92 ~ -9,
       W6Hous12bYP == -91 | W6Hous12cYP == -91 ~ -1,
       W6Hous12bYP == -1 | W6Hous12cYP == -1 ~ -8,
-      is.na(W6Hous12bYP) & is.na(W6Hous12cYP) ~ -3,
-      TRUE ~ -2
+      is.na(W6Hous12bYP) & is.na(W6Hous12cYP) ~ -3
     ),
     hownteen20 = case_when(
       W7Hous12bYP == 1 ~ 1,
@@ -1001,8 +1264,7 @@ hown_all <- hown_all %>%
       W7Hous12bYP %in% c(-999, -92) | W7Hous12cYP == -92 ~ -9,
       W7Hous12bYP == -91 | W7Hous12cYP == -91 ~ -1,
       W7Hous12bYP == -1 | W7Hous12cYP == -1 ~ -8,
-      is.na(W7Hous12bYP) & is.na(W7Hous12cYP) ~ -3,
-      TRUE ~ -2
+      is.na(W7Hous12bYP) & is.na(W7Hous12cYP) ~ -3
     )) %>%
   mutate(
     hown14 = case_when(
@@ -1016,8 +1278,7 @@ hown_all <- hown_all %>%
       hown14 == -92 ~ -9,
       hown14 == -91 ~ -1,
       hown14 == -1 ~ -8,
-      is.na(hown14) ~ -3,
-      TRUE ~ -2
+      is.na(hown14) ~ -3
     ),
     hown15 = case_when(
       hown15 == 1 ~ 1,
@@ -1030,8 +1291,7 @@ hown_all <- hown_all %>%
       hown15 == -92 ~ -9,
       hown15 == -91 ~ -1,
       hown15 == -1 ~ -8,
-      is.na(hown15) ~ -3,
-      TRUE ~ -2
+      is.na(hown15) ~ -3
     ),
     hown16 = case_when(
       hown16 == 1 ~ 1,
@@ -1044,8 +1304,7 @@ hown_all <- hown_all %>%
       hown16 == -92 ~ -9,
       hown16 == -91 ~ -1,
       hown16 == -1 ~ -8,
-      is.na(hown16) ~ -3,
-      TRUE ~ -2
+      is.na(hown16) ~ -3
     ),
     hown17 = case_when(
       hown17 == 1 ~ 1,
@@ -1058,8 +1317,7 @@ hown_all <- hown_all %>%
       hown17 == -92 ~ -9,
       hown17 == -91 ~ -1,
       hown17 == -1 ~ -8,
-      is.na(hown17) ~ -3,
-      TRUE ~ -2
+      is.na(hown17) ~ -3
     ),
     hown18 = case_when(
       W5Hous12BHH == 1 ~ 1,
@@ -1071,8 +1329,7 @@ hown_all <- hown_all %>%
       W5Hous12BHH %in% c(-999, -92) | W5Hous12CHH == -92 ~ -9,
       W5Hous12BHH == -91 | W5Hous12CHH == -91 ~ -1,
       W5Hous12BHH == -1 | W5Hous12CHH == -1 ~ -8,
-      is.na(W5Hous12BHH) & is.na(W5Hous12CHH) ~ -3,
-      TRUE ~ -2
+      is.na(W5Hous12BHH) & is.na(W5Hous12CHH) ~ -3
     ),
     hown19 = case_when(
       W6Hous12bYP == 1 ~ 1,
@@ -1084,8 +1341,7 @@ hown_all <- hown_all %>%
       W6Hous12bYP %in% c(-999, -92) | W6Hous12cYP == -92 ~ -9,
       W6Hous12bYP == -91 | W6Hous12cYP == -91 ~ -1,
       W6Hous12bYP == -1 | W6Hous12cYP == -1 ~ -8,
-      is.na(W6Hous12bYP) & is.na(W6Hous12cYP) ~ -3,
-      TRUE ~ -2
+      is.na(W6Hous12bYP) & is.na(W6Hous12cYP) ~ -3
     ),
     hown20 = case_when(
       W7Hous12bYP == 1 ~ 1,
@@ -1097,8 +1353,7 @@ hown_all <- hown_all %>%
       W7Hous12bYP %in% c(-999, -92) | W7Hous12cYP == -92 ~ -9,
       W7Hous12bYP == -91 | W7Hous12cYP == -91 ~ -1,
       W7Hous12bYP == -1 | W7Hous12cYP == -1 ~ -8,
-      is.na(W7Hous12bYP) & is.na(W7Hous12cYP) ~ -3,
-      TRUE ~ -2
+      is.na(W7Hous12bYP) & is.na(W7Hous12cYP) ~ -3
     ),
     hown25 = case_when(
       hown25 == 1 ~ 1,
@@ -1110,8 +1365,7 @@ hown_all <- hown_all %>%
       hown25 == -9 ~ -9,
       hown25 == -8 ~ -8,
       hown25 == -1 ~ -1,
-      is.na(hown25) ~ -3,
-      TRUE ~ -2
+      is.na(hown25) ~ -3
     ),
     hown32 = case_when(
       hown32 == 1 ~ 1,
@@ -1123,9 +1377,39 @@ hown_all <- hown_all %>%
       hown32 == -9 ~ -9,
       hown32 == -8 ~ -8,
       hown32 == -1 ~ -1,
-      is.na(hown32) ~ -3,
-      TRUE ~ -2
+      is.na(hown32) ~ -3
     )) %>%
+  mutate(across(c(hownteen14, hownteen15, hownteen16, hownteen17, hownteen18, hownteen19, hownteen20), 
+                ~ factor(.x, 
+                         levels = c(1, 2, 3, 4, 5, 6, 7, 8, -1, -2, -3, -8, -9), 
+                         labels = c("Owned outright",
+                                    "Being bought on a mortgage/bank loan",
+                                    "Shared ownership (owns & rents property)",
+                                    "Rented from a Council or New Town",
+                                    "Rented from a Housing Association",
+                                    "Rented privately",
+                                    "Rent free",
+                                    "Some other arrangement",
+                                    "Item not applicable", 
+                                    "Script error/information lost",
+                                    "Not asked at the fieldwork stage/participated/interviewed", 
+                                    "Don’t know/insufficient information",
+                                    "Refusal"))),
+         across(c(hown14, hown15, hown16, hown17, hown18, hown19, hown20, hown25, hown32),
+                ~ factor(.x, 
+                         levels = c(1, 2, 3, 4, 5, 6, -1, -2, -3, -8, -9), 
+                         labels = c("Owned outright",
+                                    "Owned, buying with help of mortgage/loan",
+                                    "Spart rent, part mortgage",
+                                    "Rent it",
+                                    "live rent-free",
+                                    "Other",
+                                    "Item not applicable", 
+                                    "Script error/information lost",
+                                    "Not asked at the fieldwork stage/participated/interviewed", 
+                                    "Don’t know/insufficient information",
+                                    "Refusal")))
+         ) %>%
   select(NSID, hown14, hown15, hown16, hown17, hown18, hown19, hown20, hown25, hown32,
          hownteen14, hownteen15, hownteen16, hownteen17, hownteen18, hownteen19, hownteen20)
 
@@ -1156,6 +1440,31 @@ income_all <- income_all %>%
       TRUE ~ inc32
     )
   ) %>%
+  mutate(across(c(inc25, inc32), 
+                ~ factor(.x, 
+                         levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, -1, -2, -3, -8, -9), 
+                         labels = c("less than £25 per week",
+                                    "25-50",
+                                    "50-90",
+                                    "90-140",
+                                    "140-240",
+                                    "240-300",
+                                    "300-350",
+                                    "350-400",
+                                    "400-500",
+                                    "500-600",
+                                    "600-700",
+                                    "700-800",
+                                    "800-900",
+                                    "900-1200",
+                                    "1200-1400",
+                                    "more than 1400",
+                                    "Item not applicable", 
+                                    "Script error/information lost",
+                                    "Not asked at the fieldwork stage/participated/interviewed", 
+                                    "Don’t know/insufficient information",
+                                    "Refusal"))
+  )) %>%
   select(NSID, inc25, inc32)
 
 #### income parents ####
@@ -1193,8 +1502,7 @@ convert_to_band <- function(x) {
     x < 900 ~ 13,
     x < 1200 ~ 14,
     x < 1400 ~ 15,
-    x >= 1400 ~ 16,
-    TRUE ~ -3
+    x >= 1400 ~ 16
   )
 }
 
@@ -1206,9 +1514,20 @@ hh_income_all <- hh_income_all %>%
       incwhh14 == -92 ~ -9,
       incwhh14 %in% c(-999, -992, -94) ~ -2,
       incwhh14 == -99 ~ -3,
-      incwhh14 == -1 ~ -1,
+      incwhh14 == -91 ~ -1,
+      incwhh14 == -1 ~ -8,
       incwhh14 == -3 ~ -3,
       TRUE ~ convert_to_band(incwhh14)
+    ),
+    incwhhcnt14 = case_when(
+      is.na(incwhh14) ~ -3,
+      incwhh14 == -92 ~ -9,
+      incwhh14 %in% c(-999, -992, -94) ~ -2,
+      incwhh14 == -99 ~ -3,
+      incwhh14 == -91 ~ -1,
+      incwhh14 == -1 ~ -8,
+      incwhh14 == -3 ~ -3,
+      TRUE ~ incwhh14
     ),
     
     # Sweep 2
@@ -1217,9 +1536,20 @@ hh_income_all <- hh_income_all %>%
       incwhh15 == -92 ~ -9,
       incwhh15 %in% c(-999, -992, -94) ~ -2,
       incwhh15 == -99 ~ -3,
-      incwhh15 == -1 ~ -1,
+      incwhh15 == -91 ~ -1,
+      incwhh15 == -1 ~ -8,
       incwhh15 == -3 ~ -3,
       TRUE ~ convert_to_band(incwhh15)
+    ),
+    incwhhcnt15 = case_when(
+      is.na(incwhh15) ~ -3,
+      incwhh15 == -92 ~ -9,
+      incwhh15 %in% c(-999, -992, -94) ~ -2,
+      incwhh15 == -99 ~ -3,
+      incwhh15 == -91 ~ -1,
+      incwhh15 == -1 ~ -8,
+      incwhh15 == -3 ~ -3,
+      TRUE ~ incwhh15
     ),
     
     # Sweep 3
@@ -1227,9 +1557,8 @@ hh_income_all <- hh_income_all %>%
       is.na(incwhh16) ~ -3,
       incwhh16 == -99 ~ -3,
       incwhh16 == -92 ~ -9,
-      incwhh16 == -1 ~ -1,
-      incwhh16 >= 1 & incwhh16 <= 12 ~ incwhh16,
-      TRUE ~ -3
+      incwhh16 == -91 ~ -8,
+      incwhh16 >= 1 & incwhh16 <= 12 ~ incwhh16
     ),
     
     # Sweep 4
@@ -1237,12 +1566,63 @@ hh_income_all <- hh_income_all %>%
       is.na(incwhh17) ~ -3,
       incwhh17 == -99 ~ -3,
       incwhh17 == -92 ~ -9,
-      incwhh17 == -1 ~ -1,
-      incwhh17 >= 1 & incwhh17 <= 12 ~ incwhh17,
-      TRUE ~ -3
+      incwhh17 == -91 ~ -8,
+      incwhh17 >= 1 & incwhh17 <= 12 ~ incwhh17
     )
   ) %>%
-  select(NSID, incwhh14, incwhh15, incwhh16, incwhh17)
+  mutate(across(c(incwhh14, incwhh15), 
+                ~ factor(.x, 
+                         levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, -1, -2, -3, -8, -9), 
+                         labels = c("less than £25 per week",
+                                    "25-50",
+                                    "50-90",
+                                    "90-140",
+                                    "140-240",
+                                    "240-300",
+                                    "300-350",
+                                    "350-400",
+                                    "400-500",
+                                    "500-600",
+                                    "600-700",
+                                    "700-800",
+                                    "800-900",
+                                    "900-1200",
+                                    "1200-1400",
+                                    "more than 1400",
+                                    "Item not applicable", 
+                                    "Script error/information lost",
+                                    "Not asked at the fieldwork stage/participated/interviewed", 
+                                    "Don’t know/insufficient information",
+                                    "Refusal"))),
+         across(c(incwhhcnt14, incwhhcnt15), 
+                ~ labelled(.x, 
+                           labels = c("Item not applicable" = -1, 
+                                      "Script error/information lost" = -2,
+                                      "Not asked at the fieldwork stage/participated/interviewed" = -3, 
+                                      "Don’t know/insufficient information" = -8,
+                                      "Refusal" = -9))),
+         across(c(incwhh16, incwhh17), 
+                ~ factor(.x, 
+                         levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, -1, -2, -3, -8, -9), 
+                         labels = c("up to 49",
+                                    "50-99",
+                                    "100-199",
+                                    "200-299",
+                                    "300-399",
+                                    "400-499",
+                                    "500-599",
+                                    "600-699",
+                                    "700-799",
+                                    "800-899",
+                                    "900-999",
+                                    "1000 or more",
+                                    "Item not applicable", 
+                                    "Script error/information lost",
+                                    "Not asked at the fieldwork stage/participated/interviewed", 
+                                    "Don’t know/insufficient information",
+                                    "Refusal")))
+         ) %>%
+  select(NSID, incwhh14, incwhh15, incwhhcnt14, incwhhcnt15, incwhh16, incwhh17)
 
 #### IMD ####
 # Load IMD variables from relevant sweeps
@@ -1281,6 +1661,12 @@ imd_all <- imd_all %>%
         TRUE ~ imd32
       )
     ) %>%
+  mutate(across(c(imd15, imd16, imd32), 
+                ~ labelled(.x, 
+                           labels = c("Item not applicable" = -1, 
+                                      "Script error/information lost" = -2,
+                                      "Not asked at the fieldwork stage/participated/interviewed" = -3, 
+                                      "Don’t know/insufficient information" = -8)))) %>%
   select(NSID, imd15, imd16, imd32)
 
 #### GHQ ####
@@ -1377,17 +1763,26 @@ ghq_all <- ghq_all %>%
   mutate(
     ghq15 = case_when(
       is.na(ghq15) ~ -3,
+      ghq15 == -99 ~ -3,
       ghq15 %in% c(-97, -96, -92) ~ -9,
       TRUE ~ ghq15
     ),
     ghq17 = case_when(
       is.na(ghq17) ~ -3,
+      ghq17 == -99 ~ -3,
       ghq17 %in% c(-97, -96, -92) ~ -9,
       TRUE ~ ghq17
     ),
     ghq25 = if_else(is.na(ghq25), -3, ghq25),
     ghq32 = if_else(is.na(ghq32), -3, ghq32)
   )%>%
+  mutate(across(c(ghq15, ghq17, ghq25, ghq32, ghqtl15, ghqtl17, ghqtl25, ghqtl32), 
+                ~ labelled(.x, 
+                           labels = c("Item not applicable" = -1, 
+                                      "Script error/information lost" = -2,
+                                      "Not asked at the fieldwork stage/participated/interviewed" = -3, 
+                                      "Don’t know/insufficient information" = -8,
+                                      "Refusal" = -9)))) %>%
   select(NSID, ghq15, ghq17, ghq25, ghq32,
          ghqtl15, ghqtl17, ghqtl25, ghqtl32)
 
@@ -1436,6 +1831,13 @@ lsat_all <- lsat_all %>%
       TRUE ~ -2
     )
   ) %>%
+  mutate(across(c(lsat20, lsat25, lsat32), 
+                ~ labelled(.x, 
+                           labels = c("Item not applicable" = -1, 
+                                      "Script error/information lost" = -2,
+                                      "Not asked at the fieldwork stage/participated/interviewed" = -3, 
+                                      "Don’t know/insufficient information" = -8,
+                                      "Refusal" = -9)))) %>%
   select(NSID, lsat20, lsat25, lsat32)
 
 #### self-harm ####
@@ -1472,7 +1874,14 @@ sharm_all <- sharm_all %>%
       TRUE ~ -2                                
     )
   ) %>%
+  mutate(sharm25 = labelled(sharm25, 
+                            labels = c("Item not applicable" = -1, 
+                                       "Script error/information lost" = -2,
+                                       "Not asked at the fieldwork stage/participated/interviewed" = -3, 
+                                       "Don’t know/insufficient information" = -8,
+                                       "Refusal" = -9))) %>%
   select(NSID, sharm25)
+
 #### GAD ####
 # Load GAD-7 derived score and item-level data
 gad_vars <- list(
@@ -1494,6 +1903,12 @@ gad_all <- gad_all %>%
       TRUE ~ -3                                
     )
   ) %>%
+  mutate(gad32 = labelled(gad32, 
+                            labels = c("Item not applicable" = -1, 
+                                       "Script error/information lost" = -2,
+                                       "Not asked at the fieldwork stage/participated/interviewed" = -3, 
+                                       "Don’t know/insufficient information" = -8,
+                                       "Refusal" = -9))) %>%
   select(NSID, gad32)
 
 #### PHQ ####
@@ -1517,6 +1932,12 @@ phq_all <- phq_all %>%
       TRUE ~ -3                                
     )
   ) %>%
+  mutate(phq32 = labelled(phq32, 
+                          labels = c("Item not applicable" = -1, 
+                                     "Script error/information lost" = -2,
+                                     "Not asked at the fieldwork stage/participated/interviewed" = -3, 
+                                     "Don’t know/insufficient information" = -8,
+                                     "Refusal" = -9))) %>%
   select(NSID, phq32)
 
 #### UCLA Loneliness ####
@@ -1540,138 +1961,14 @@ lon_all <- lon_all %>%
       TRUE ~ -3                                
     )
   ) %>%
+  mutate(lon32 = labelled(lon32, 
+                          labels = c("Item not applicable" = -1, 
+                                     "Script error/information lost" = -2,
+                                     "Not asked at the fieldwork stage/participated/interviewed" = -3, 
+                                     "Don’t know/insufficient information" = -8,
+                                     "Refusal" = -9))) %>%
   select(NSID, lon32)
 
-#### weight ####
-# Load weight variables from each sweep
-wt_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S12history)) %>% 
-    select(NSID, wt0 = bwtkg),
-  S4 = read_dta(file.path(data_path, sweeps$S4history)) %>%
-    select(NSID, wt0 = W4bwtkgYP),
-  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
-    select(NSID, wt25 = W8WEIGHT),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
-    select(NSID, wt32 = W9WEIGHT)
-)
-
-# Merge datasets
-wt_all <- reduce(wt_vars, full_join, by = "NSID")
-
-# Harmonise weight variables
-wt_all <- wt_all %>%
-  mutate(
-    wt0 = coalesce(as.numeric(wt0.x), as.numeric(wt0.y))
-  ) %>% 
-  select(-wt0.x, -wt0.y)  %>%
-  mutate(
-    wt0 = case_when(
-      wt0 > 0 ~ wt0,
-      wt0 == -92 ~ -9,
-      wt0 == -91 ~ -1,
-      wt0 == -1 ~ -8,
-      wt0 %in% c(-996, -99) ~ -3,
-      is.na(wt0) ~ -3,
-      TRUE ~ -2
-    ),
-    wt25 = case_when(
-      wt25 > 0 ~ wt25,
-      wt25 == -9 ~ -9,
-      wt25 == -8 ~ -8,
-      wt25 == -1 ~ -1,
-      is.na(wt25) ~ -3,
-      TRUE ~ -2
-    ),
-    wt32 = case_when(
-      wt32 > 0 ~ wt32,
-      wt32 == -9 ~ -9,
-      wt32 == -8 ~ -8,
-      wt32 == -1 ~ -1,
-      is.na(wt32) ~ -3,
-      TRUE ~ -2
-    )
-  ) %>%
-  select(NSID, wt0, wt25, wt32)
-
-#### height ####
-# Load height data from sweeps 8 and 9
-ht_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>% 
-    select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>% 
-    select(NSID),
-  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
-    select(NSID, ht25 = W8HEIGHT),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
-    select(NSID, ht32 = W9HEIGHT)
-)
-
-# Merge datasets
-ht_all <- reduce(ht_vars, full_join, by = "NSID")
-
-# Recode height
-ht_all <- ht_all %>%
-  mutate(
-    ht25 = case_when(
-      ht25 > 0 ~ ht25,
-      ht25 == -9 ~ -9,
-      ht25 == -8 ~ -8,
-      ht25 == -1 ~ -1,
-      TRUE ~ -3
-    ),
-    ht32 = case_when(
-      ht32 > 0 ~ ht32,
-      ht32 == -9 ~ -9,
-      ht32 == -8 ~ -8,
-      ht32 == -1 ~ -1,
-      TRUE ~ -3
-    ),
-    # combined height variable using most recent valid data
-    ht25_32 = case_when(
-      ht32 > 0 ~ ht32,
-      ht25 > 0 ~ ht25,
-      ht32 %in% c(-9, -8, -1) ~ ht32,
-      ht25 %in% c(-9, -8, -1) ~ ht25, 
-      TRUE ~ -3  
-    )
-  ) %>%
-  select(NSID, ht25, ht32, ht25_32)
-
-#### BMI ####
-# Load BMI data from relevant sweeps
-bmi_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>% 
-    select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>% 
-    select(NSID),
-  S8 = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>%
-    select(NSID, bmi25 = W8DBMI),
-  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
-    select(NSID, bmi32 = W9DBMI)
-)
-
-# Merge all BMI data by NSID
-bmi_all <- reduce(bmi_vars, full_join, by = "NSID")
-
-# Recode BMI variables
-bmi_all <- bmi_all %>%
-  mutate(
-    bmi25 = case_when(
-      bmi25 > 0 ~ bmi25,
-      bmi25 == -9 ~ -9,
-      bmi25 == -8 ~ -8,
-      bmi25 == -1 ~ -1,
-      TRUE ~ -3
-    ),
-    bmi32 = case_when(
-      bmi32 > 0 ~ bmi32,
-      bmi32 == -9 ~ -9,
-      bmi32 == -8 ~ -8,
-      bmi32 == -1 ~ -1,
-      TRUE ~ -3
-    )
-  ) %>%
-  select(NSID, bmi25, bmi32)
 
 #### self-rated general health ####
 # Load relevant sweep files and select needed variables
@@ -1755,6 +2052,39 @@ health_all <- health_all %>%
                        gheaadu32 %in% c(1, 2, 3) ~ 0,
                        TRUE ~ gheaadu32)
   ) %>%
+  mutate(across(c(gheateen15, gheateen16, gheateen17), ~ factor(.x, 
+                                                                levels = c(1, 2, 3, 4, -1, -2, -3, -8, -9), 
+                                                                labels = c("Very good",
+                                                                           "Fairly good",
+                                                                           "Not very good",
+                                                                           "Not good at all",
+                                                                           "Item not applicable", 
+                                                                           "Script error/information lost",
+                                                                           "Not asked at the fieldwork stage/participated/interviewed",
+                                                                           "Don’t know/insufficient information",
+                                                                           "Refusal"))),
+         across(c(gheaadu25, gheaadu32), ~ factor(.x, 
+                                                  levels = c(1, 2, 3, 4, 5, -1, -2, -3, -8, -9), 
+                                                  labels = c("Excellent",
+                                                             "Very good",
+                                                             "Good",
+                                                             "Fair",
+                                                             "Poor",
+                                                             "Item not applicable", 
+                                                             "Script error/information lost",
+                                                             "Not asked at the fieldwork stage/participated/interviewed",
+                                                             "Don’t know/insufficient information",
+                                                             "Refusal"))),
+         across(c(ghea15, ghea16, ghea17, ghea25, ghea32), ~ factor(.x, 
+                                                  levels = c(0, 1, -1, -2, -3, -8, -9), 
+                                                  labels = c("Good/fairly good/very good/excellent",
+                                                             "Poor/not good at all/not very good/fair",
+                                                             "Item not applicable", 
+                                                             "Script error/information lost",
+                                                             "Not asked at the fieldwork stage/participated/interviewed",
+                                                             "Don’t know/insufficient information",
+                                                             "Refusal")))
+  ) %>%
   select(NSID, gheateen15, gheateen16, gheateen17,
          gheaadu25, gheaadu32,
          ghea15, ghea16, ghea17, ghea25, ghea32)
@@ -1807,7 +2137,169 @@ lsi_all <- lsi_all %>%
     lsi25 = recode_lsi(lsi25),
     lsi32 = recode_lsi(lsi32)
   ) %>%
+  mutate(across(c(lsi14_15, lsi17, lsi19, lsi20, lsi25, lsi32), ~ factor(.x, 
+                                                                    levels = c(0, 1, -1, -2, -3, -8, -9), 
+                                                                    labels = c("No",
+                                                                               "Yes",
+                                                                               "Item not applicable", 
+                                                                               "Script error/information lost",
+                                                                               "Not asked at the fieldwork stage/participated/interviewed",
+                                                                               "Don’t know/insufficient information",
+                                                                               "Refusal")))
+  ) %>%
   select(NSID, lsi14_15, lsi17, lsi19, lsi20, lsi25, lsi32)
+
+#### weight ####
+# Load weight variables from each sweep
+wt_vars <- list(
+  S1 = read_dta(file.path(data_path, sweeps$S12history)) %>% 
+    select(NSID, wt0 = bwtkg),
+  S4 = read_dta(file.path(data_path, sweeps$S4history)) %>%
+    select(NSID, wt0 = W4bwtkgYP),
+  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
+    select(NSID, wt25 = W8WEIGHT),
+  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+    select(NSID, wt32 = W9WEIGHT)
+)
+
+# Merge datasets
+wt_all <- reduce(wt_vars, full_join, by = "NSID")
+
+# Harmonise weight variables
+wt_all <- wt_all %>%
+  mutate(
+    wt0 = coalesce(as.numeric(wt0.x), as.numeric(wt0.y))
+  ) %>% 
+  select(-wt0.x, -wt0.y)  %>%
+  mutate(
+    wt0 = case_when(
+      wt0 > 0 ~ wt0,
+      wt0 == -92 ~ -9,
+      wt0 == -91 ~ -1,
+      wt0 == -1 ~ -8,
+      wt0 %in% c(-996, -99) ~ -3,
+      is.na(wt0) ~ -3,
+      TRUE ~ -2
+    ),
+    wt25 = case_when(
+      wt25 > 0 ~ wt25,
+      wt25 == -9 ~ -9,
+      wt25 == -8 ~ -8,
+      wt25 == -1 ~ -1,
+      is.na(wt25) ~ -3,
+      TRUE ~ -2
+    ),
+    wt32 = case_when(
+      wt32 > 0 ~ wt32,
+      wt32 == -9 ~ -9,
+      wt32 == -8 ~ -8,
+      wt32 == -1 ~ -1,
+      is.na(wt32) ~ -3,
+      TRUE ~ -2
+    )
+  ) %>%
+  mutate(across(c(wt0, wt25, wt32), 
+                ~ labelled(.x, 
+                           labels = c("Item not applicable" = -1, 
+                                      "Script error/information lost" = -2,
+                                      "Not asked at the fieldwork stage/participated/interviewed" = -3, 
+                                      "Don’t know/insufficient information" = -8,
+                                      "Refusal" = -9)))) %>%
+  select(NSID, wt0, wt25, wt32)
+
+#### height ####
+# Load height data from sweeps 8 and 9
+ht_vars <- list(
+  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>% 
+    select(NSID),
+  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>% 
+    select(NSID),
+  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
+    select(NSID, ht25 = W8HEIGHT),
+  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+    select(NSID, ht32 = W9HEIGHT)
+)
+
+# Merge datasets
+ht_all <- reduce(ht_vars, full_join, by = "NSID")
+
+# Recode height
+ht_all <- ht_all %>%
+  mutate(
+    ht25 = case_when(
+      ht25 > 0 ~ ht25,
+      ht25 == -9 ~ -9,
+      ht25 == -8 ~ -8,
+      ht25 == -1 ~ -1,
+      TRUE ~ -3
+    ),
+    ht32 = case_when(
+      ht32 > 0 ~ ht32,
+      ht32 == -9 ~ -9,
+      ht32 == -8 ~ -8,
+      ht32 == -1 ~ -1,
+      TRUE ~ -3
+    ),
+    # combined height variable using most recent valid data
+    ht25_32 = case_when(
+      ht32 > 0 ~ ht32,
+      ht25 > 0 ~ ht25,
+      ht32 %in% c(-9, -8, -1) ~ ht32,
+      ht25 %in% c(-9, -8, -1) ~ ht25, 
+      TRUE ~ -3  
+    )
+  ) %>%
+  mutate(across(c(ht25, ht32, ht25_32), 
+                ~ labelled(.x, 
+                           labels = c("Item not applicable" = -1, 
+                                      "Script error/information lost" = -2,
+                                      "Not asked at the fieldwork stage/participated/interviewed" = -3, 
+                                      "Don’t know/insufficient information" = -8,
+                                      "Refusal" = -9)))) %>%
+  select(NSID, ht25, ht32, ht25_32)
+
+#### BMI ####
+# Load BMI data from relevant sweeps
+bmi_vars <- list(
+  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>% 
+    select(NSID),
+  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>% 
+    select(NSID),
+  S8 = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>%
+    select(NSID, bmi25 = W8DBMI),
+  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+    select(NSID, bmi32 = W9DBMI)
+)
+
+# Merge all BMI data by NSID
+bmi_all <- reduce(bmi_vars, full_join, by = "NSID")
+
+# Recode BMI variables
+bmi_all <- bmi_all %>%
+  mutate(
+    bmi25 = case_when(
+      bmi25 > 0 ~ bmi25,
+      bmi25 == -9 ~ -9,
+      bmi25 == -8 ~ -8,
+      bmi25 == -1 ~ -1,
+      TRUE ~ -3
+    ),
+    bmi32 = case_when(
+      bmi32 > 0 ~ bmi32,
+      bmi32 == -9 ~ -9,
+      bmi32 == -8 ~ -8,
+      bmi32 == -1 ~ -1,
+      TRUE ~ -3
+    )
+  ) %>%
+  mutate(across(c(bmi25, bmi32), 
+                ~ labelled(.x, 
+                           labels = c("Item not applicable" = -1, 
+                                      "Script error/information lost" = -2,
+                                      "Not asked at the fieldwork stage/participated/interviewed" = -3, 
+                                      "Don’t know/insufficient information" = -8,
+                                      "Refusal" = -9)))) %>%
+  select(NSID, bmi25, bmi32)
 
 #### smoke ####
 # Load smoking data from relevant sweeps
@@ -1898,6 +2390,27 @@ smoking_all <- smoking_all %>%
       TRUE ~ recode_smknw14_16(smknw16)),
     smknw25 = recode_smknw25_32(smk25),
     smknw32 = recode_smknw25_32(smk32)
+  ) %>%
+  mutate(across(c(smk14, smk15, smk16, smk25, smk32), ~ factor(.x, 
+                                                               levels = c(0, 1, 2, 3, -1, -2, -3, -8, -9), 
+                                                               labels = c("Never",
+                                                                          "Used to smoke, don’t at all now",
+                                                                          "Smoke occasionally – not every day",
+                                                                          "Smoke almost every day",
+                                                                          "Item not applicable", 
+                                                                          "Script error/information lost",
+                                                                          "Not asked at the fieldwork stage/participated/interviewed",
+                                                                          "Don’t know/insufficient information",
+                                                                          "Refusal"))),
+         across(c(smknw14, smknw15, smknw16, smknw25, smknw32), ~ factor(.x, 
+                                                                    levels = c(0, 1, -1, -2, -3, -8, -9), 
+                                                                    labels = c("No",
+                                                                               "Yes",
+                                                                               "Item not applicable", 
+                                                                               "Script error/information lost",
+                                                                               "Not asked at the fieldwork stage/participated/interviewed",
+                                                                               "Don’t know/insufficient information",
+                                                                               "Refusal")))
   ) %>%
   select(NSID, smknw14, smknw15, smknw16, smknw25, smknw32,
          smk14, smk15, smk16, smk25, smk32)
@@ -2042,6 +2555,71 @@ alc_all <- alc_all %>%
       auditb32 == 1 ~ 0,
       auditc32 > 1 ~recode_audit(auditc32),
       TRUE ~ recode_audit(auditc32))
+  ) %>%
+  mutate(alcfst = factor(alcfst, 
+                           levels = c(14, 15, 16, 17, 19, 20, 25, 32, 99, -1, -2, -3, -8, -9), 
+                           labels = c("Age 14",
+                                      "Age 15",
+                                      "Age 16",
+                                      "Age 17",
+                                      "Age 19",
+                                      "Age 20",
+                                      "Age 25",
+                                      "Age 32",
+                                      "Never had alcohol",
+                                      "Item not applicable", 
+                                      "Script error/information lost",
+                                      "Not asked at the fieldwork stage/participated/interviewed",
+                                      "Don’t know/insufficient information",
+                                      "Refusal")),
+         across(c(alcfreq14, alcfreq15, alcfreq16, alcfreq17, alcfreq19, alcfreq20), ~ factor(.x, 
+                                                                                             levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9), 
+                                                                                             labels = c("Less often/not at all",
+                                                                                                        "Once every couple of months",
+                                                                                                        "Once to three times a month",
+                                                                                                        "Once or twice a week",
+                                                                                                        "Most days",
+                                                                                                        "Item not applicable", 
+                                                                                                        "Script error/information lost",
+                                                                                                        "Not asked at the fieldwork stage/participated/interviewed",
+                                                                                                        "Don’t know/insufficient information",
+                                                                                                        "Refusal"))),
+         across(c(audita25, audita32), ~ factor(.x, 
+                                               levels = c(0, 1, 2, 3, 4,  -1, -2, -3, -8, -9), 
+                                               labels = c("Never",
+                                                          "Monthly or less",
+                                                          "2–4 times a month",
+                                                          "2–3 times a week",
+                                                          "4 or more times a week",
+                                                          "Item not applicable", 
+                                                          "Script error/information lost",
+                                                          "Not asked at the fieldwork stage/participated/interviewed",
+                                                          "Don’t know/insufficient information",
+                                                          "Refusal"))),
+         across(c(auditb25, auditb32), ~ factor(.x, 
+                                               levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9),
+                                               labels = c("1–2 drinks",
+                                                          "3–4 drinks",
+                                                          "5–6 drinks",
+                                                          "7–9 drinks",
+                                                          "10+",
+                                                          "Item not applicable", 
+                                                          "Script error/information lost",
+                                                          "Not asked at the fieldwork stage/participated/interviewed",
+                                                          "Don’t know/insufficient information",
+                                                          "Refusal"))),
+         across(c(auditc25, auditc32), ~ factor(.x, 
+                                               levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9),
+                                               labels = c("Never",
+                                                          "Less than monthly",
+                                                          "Monthly",
+                                                          "Weekly",
+                                                          "Daily or almost daily",
+                                                          "Item not applicable", 
+                                                          "Script error/information lost",
+                                                          "Not asked at the fieldwork stage/participated/interviewed",
+                                                          "Don’t know/insufficient information",
+                                                          "Refusal")))
   ) %>%
   select(NSID, alcfst, alcfreq14, alcfreq15, alcfreq16, alcfreq17, alcfreq19, alcfreq20,
          audita25, audita32, auditb25, auditb32, auditc25, auditc32)
@@ -2233,6 +2811,32 @@ drug_all <- drug_all %>%
 
 # Final selection
 drug_final <- drug_all %>%
+  mutate(across(c(drgcnbevr,drgothevr, starts_with("drgcnbnw"),starts_with("drgothnw")), ~ factor(.x, 
+                                                 levels = c(0, 1, -1, -2, -3, -8, -9), 
+                                                 labels = c("No",
+                                                            "Yes",
+                                                            "Item not applicable", 
+                                                            "Script error/information lost",
+                                                            "Not asked at the fieldwork stage/participated/interviewed",
+                                                            "Don’t know/insufficient information",
+                                                            "Refusal"))),
+         across(c(drgcnbfst, drgothfst), ~ factor(.x, 
+                                                 levels = c(14, 15, 16, 17, 19, 20, 25, 32, 99, -1, -2, -3, -8, -9), 
+                                                 labels = c("Age 14",
+                                                            "Age 15",
+                                                            "Age 16",
+                                                            "Age 17",
+                                                            "Age 19",
+                                                            "Age 20",
+                                                            "Age 25",
+                                                            "Age 32",
+                                                            "Never used",
+                                                            "Item not applicable", 
+                                                            "Script error/information lost",
+                                                            "Not asked at the fieldwork stage/participated/interviewed",
+                                                            "Don’t know/insufficient information",
+                                                            "Refusal")))
+  ) %>%
   select(NSID,
          drgcnbevr, drgcnbfst, starts_with("drgcnbnw"),
          drgothevr, drgothfst, starts_with("drgothnw"))
@@ -2300,6 +2904,16 @@ spt_all <- spt_all %>%
       TRUE ~ -3
     )
   ) %>%
+  mutate(across(c(starts_with("spt")), ~ factor(.x, 
+                                                levels = c(0, 1, -1, -2, -3, -8, -9), 
+                                                labels = c("No",
+                                                           "Yes",
+                                                           "Item not applicable", 
+                                                           "Script error/information lost",
+                                                           "Not asked at the fieldwork stage/participated/interviewed",
+                                                           "Don’t know/insufficient information",
+                                                           "Refusal")))
+  ) %>%
   select(NSID, spt14, spt15, spt17, spt19, spt20, spt25, spt32)
 
 #### absence ####
@@ -2338,6 +2952,16 @@ absence_all <- absence_all %>%
     abs1m14 = recode_absence(abs1m14),
     abs1m15 = recode_absence(abs1m15),
     abs1m16 = recode_absence(abs1m16)
+  ) %>%
+  mutate(across(starts_with("abs1m"), ~ factor(.x, 
+                                                levels = c(0, 1, -1, -2, -3, -8, -9), 
+                                                labels = c("No",
+                                                           "Yes",
+                                                           "Item not applicable", 
+                                                           "Script error/information lost",
+                                                           "Not asked at the fieldwork stage/participated/interviewed",
+                                                           "Don’t know/insufficient information",
+                                                           "Refusal")))
   ) %>%
   select(NSID, abs1m14, abs1m15, abs1m16)
 
@@ -2382,6 +3006,16 @@ suspend_expel_all <- suspend_expel_all %>%
     expl15 = recode_school_discipline(expl15),
     expl16 = recode_school_discipline(expl16),
     expl17 = recode_school_discipline(expl17)
+  ) %>%
+  mutate(across(c(starts_with("abs1m"), starts_with("expl")), ~ factor(.x, 
+                                                  levels = c(0, 1, -1, -2, -3, -8, -9), 
+                                                  labels = c("No",
+                                                             "Yes",
+                                                             "Item not applicable", 
+                                                             "Script error/information lost",
+                                                             "Not asked at the fieldwork stage/participated/interviewed",
+                                                             "Don’t know/insufficient information",
+                                                             "Refusal")))
   ) %>%
   select(NSID, starts_with("susp"), starts_with("expl"))
 
@@ -2444,6 +3078,19 @@ truancy_all <- truancy_all %>%
     trua16 = recode_truancy_early(trua16_ever, trua16_type),
     trua17 = recode_truancy_s4(trua17_raw)
   ) %>%
+  mutate(across(starts_with("trua"), ~ factor(.x, 
+                                              levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9), 
+                                              labels = c("Never played truant",
+                                                         "For weeks at a time",
+                                                         "Several days at a time",
+                                                         "Particular days or lessons",
+                                                         "Odd day or lesson",
+                                                         "Item not applicable", 
+                                                         "Script error/information lost",
+                                                         "Not asked at the fieldwork stage/participated/interviewed",
+                                                         "Don’t know/insufficient information",
+                                                         "Refusal")))
+  ) %>%
   select(NSID, trua14, trua15, trua16, trua17)
 
 #### police contact ####
@@ -2484,45 +3131,24 @@ recode_pol <- function(x) {
     x %in% c(-97, -92) ~ -9,
     x ==  -91 ~ -1,
     x %in% c(-96, -1) ~ -8,
-    x %in% c(-99) ~ -3,
-    TRUE ~ -3
+    x %in% c(-99) ~ -3
   )
 }
 
 # Recode function for contact counts
 recode_cnt <- function(x, ever) {
   case_when(
-    ever == 0 ~ 0,
+    ever %in% c(2,3) ~ 0,
     x >= 0 ~ x, 
     x %in% c(-97, -92) ~ -9,
     x ==  -91 ~ -1,
     x %in% c(-96, -1) ~ -8,
-    x %in% c(-99) ~ -3,
-    TRUE ~ -3
+    x %in% c(-99) ~ -3
   )
 }
 
 # Apply recoding
 police_all <- police_all %>%
-  mutate(
-    pol14 = case_when(
-      pol14 %in% c(1, 3) ~ 1,
-      pol14 == 2 ~ 0,
-      pol14 %in% c(-97, -92) ~ -9,
-      pol14 ==  -91 ~ -1,
-      pol14 %in% c(-96, -1) ~ -8,
-      pol14 %in% c(-99) ~ -3,
-      TRUE ~ -3),
-    pol15 = recode_pol(pol15),
-    pol16 = recode_pol(pol16),
-    pol17 = case_when(
-      pol17 %in% c(1, 3) ~ 1,
-      pol17 == 2 ~ 0,
-      pol17 %in% c(-97, -92) ~ -9,
-      pol17 ==  -91 ~ -1,
-      pol17 %in% c(-96, -1) ~ -8,
-      pol17 %in% c(-99) ~ -3,
-      TRUE ~ -3)) %>%
   mutate(
     polcnt14 = recode_cnt(polcnt14, pol14),
     polcnt15 = recode_cnt(polcnt15, pol15),
@@ -2559,6 +3185,52 @@ police_all <- police_all %>%
              .x < 0 ~ .x, 
              TRUE ~ -3))
   )%>%
+  mutate(
+    pol14 = case_when(
+      pol14 %in% c(1, 3) ~ 1,
+      pol14 == 2 ~ 0,
+      pol14 %in% c(-97, -92) ~ -9,
+      pol14 ==  -91 ~ -1,
+      pol14 %in% c(-96, -1) ~ -8,
+      pol14 %in% c(-99) ~ -3,
+      TRUE ~ -3),
+    pol15 = recode_pol(pol15),
+    pol16 = recode_pol(pol16),
+    pol17 = case_when(
+      pol17 %in% c(1, 3) ~ 1,
+      pol17 == 2 ~ 0,
+      pol17 %in% c(-97, -92) ~ -9,
+      pol17 ==  -91 ~ -1,
+      pol17 %in% c(-96, -1) ~ -8,
+      pol17 %in% c(-99) ~ -3,
+      TRUE ~ -3)) %>%
+  mutate(across(c(starts_with("polwrn"), starts_with("polars"),
+                  starts_with("polcau"), starts_with("polglt"),
+                  starts_with("polpnd")), ~ factor(.x, 
+                                                  levels = c(0, 1, -1, -2, -3, -8, -9), 
+                                                  labels = c("No",
+                                                             "Yes",
+                                                             "Item not applicable", 
+                                                             "Script error/information lost",
+                                                             "Not asked at the fieldwork stage/participated/interviewed",
+                                                             "Don’t know/insufficient information",
+                                                             "Refusal"))),
+         across(c(pol14, pol15, pol16, pol17), ~ factor(.x, 
+                                                     levels = c(0, 1, -1, -2, -3, -8, -9), 
+                                                     labels = c("No",
+                                                                "Yes/not in last 3 years",
+                                                                "Item not applicable", 
+                                                                "Script error/information lost",
+                                                                "Not asked at the fieldwork stage/participated/interviewed",
+                                                                "Don’t know/insufficient information",
+                                                                "Refusal"))),
+         across(c(starts_with("polcnt")), ~ labelled(.x, 
+                                               labels = c("Item not applicable" = -1, 
+                                                          "Script error/information lost" = -2,
+                                                          "Not asked at the fieldwork stage/participated/interviewed" = -3, 
+                                                          "Don’t know/insufficient information" = -8,
+                                                          "Refusal" = -9)))
+  ) %>%
   select(NSID, pol14, pol15, pol16, pol17,
          polcnt14, polcnt15, polcnt16, polcnt17,
          starts_with("polwrn"), starts_with("polars"),
@@ -2634,7 +3306,52 @@ bully_all <- bully_all %>%
       TRUE ~ -2
     )
   )%>%
+  mutate(across(starts_with("bul"), ~ factor(.x, 
+                                             levels = c(0, 1, -1, -2, -3, -8, -9), 
+                                             labels = c("No",
+                                                        "Yes",
+                                                        "Item not applicable", 
+                                                        "Script error/information lost",
+                                                        "Not asked at the fieldwork stage/participated/interviewed",
+                                                        "Don’t know/insufficient information",
+                                                        "Refusal")))
+  ) %>%
   select(NSID, bul14, bul15, bul16, bul17, bul20, bul25)
+
+#### longitudinal dataset ####
+# prepare for the longitudinal dataset by merging all derived variables
+long_vars <- read_dta(file.path(data_path, sweeps$longitudinal)) %>% 
+    select(NSID, SAMPPSU, SAMPSTRATUM, DESIGNWEIGHT,        
+           MAINBOOST, W1OUTCOME, W1FINWT,
+           W2OUTCOME, W2FINWT, 
+           W3OUTCOME, W3FINWT, W2TOW3NRWT,
+           W4OUTCOME, W4WEIGHT_MAIN_BOOST, W4WEIGHT_MAIN, 
+           W5OUTCOME, W5FINWT_CROSS, 
+           W6OUTCOME, W6FINWT_CROSS, W6LSYPEWT, W6LSYPEW4WT,
+           W7OUTCOME, W7_LSYPE_WT, W7FINWT, W7_LSYPE_WT_SKIPONLY, 
+           W8OUTCOME, W8FINWT, 
+           W9OUTCOME, W9FINWT, DATA_AVAILABILITY) %>%
+  mutate(across(c(W1OUTCOME, W2OUTCOME, W3OUTCOME,
+                  W4OUTCOME, W5OUTCOME, W6OUTCOME, W7OUTCOME,
+                  W8OUTCOME, W9OUTCOME), 
+                ~ factor(.x,
+                         levels = c(1, 2, 3, 4, 5, 6, -1),
+                         labels = c("Productive", 
+                                    "Refusal",
+                                    "Non-contact and other unproductive", 
+                                    "Ineligible",
+                                    "Untraced", 
+                                    "Not issued",
+                                    "No contact"))),
+         DATA_AVAILABILITY = factor(DATA_AVAILABILITY,
+                                    levels = c(0, 1),
+                                    labels = c("Not available",
+                                               "Available for research")),
+         MAINBOOST = factor(MAINBOOST,
+                            levels = c(1, 2),
+                            labels = c("Main",
+                                       "Boost")))
+
 
 #### merge all datasets ####
 # Merge all derived variables into a single dataset
@@ -2674,7 +3391,8 @@ derived_vars <- list(
   suspend_expel_all,
   truancy_all,
   bully_all,
-  police_all
+  police_all,
+  long_vars
 )
 
 # Combine all datasets by NSID
@@ -2690,12 +3408,11 @@ derived_all <- set_variable_labels(
   sori20 = "Sexuality (age 20y)",
   sori25 = "Sexuality (age 25y)",
   sori32 = "Sexuality (age 32y)",
-  partnr18 = "Partner status simple (age 18y)",
-  partnr19 = "Partner status simple (age 19y)",
-  partnr25 = "Partner status simple (age 25y)",
-  partnr32 = "Partner status simple (age 32y)",
-  partnradu25 = "Partner status complete (age 25y)",
-  partnradu32 = "Partner status complete (age 32y)",
+  partnr19 = "Legal marital status simple (age 19y)",
+  partnr25 = "Legal marital status simple (age 25y)",
+  partnr32 = "Legal marital status simple (age 32y)",
+  partnradu25 = "Legal marital status complete (age 25y)",
+  partnradu32 = "Legal marital status complete (age 32y)",
   regub15 = "Region urban (age 15y)",
   regub16 = "Region urban (age 16y)",
   regov15 = "Region government area (age 15y)",
@@ -2762,6 +3479,8 @@ derived_all <- set_variable_labels(
   inc32 = "Banded weekly income of cohort member and partner (pound, age 32)",
   incwhh14 = "Banded weekly parents' gross salary (pound, CM age 14)",
   incwhh15 = "Banded weekly parents' gross salary (pound, CM age 15)",
+  incwhhcnt14 = "Weekly parents' gross salary (pounds, continuous, CM age 14)",
+  incwhhcnt15 = "Weekly parents' gross salary (pounds, continuous, CM age 15)",
   incwhh16 = "Banded weekly parents' gross salary (pound, CM age 16)",
   incwhh17 = "Banded weekly parents' gross salary (pound, CM age 17)",
   imd15 = "2004 Index of Multiple Deprivation (IMD) (age 15y)",
@@ -2873,13 +3592,13 @@ derived_all <- set_variable_labels(
   polwrn25 = "Police warning (age 25y)",
   polars25 = "Police arrest (age 25y)",
   polcau25 = "Police caution (age 25y)",
-  polglt25 = "Police guilty plea (age 25y)",
-  polpnd25 = "Police pending (age 25y)",
+  polglt25 = "Police found guilty (age 25y)",
+  polpnd25 = "Given a Penalty Notice for Disorder (age 25y)",
   polwrn32 = "Police warning (age 32y)",
   polars32 = "Police arrest (age 32y)",
   polcau32 = "Police caution (age 32y)",
-  polglt32 = "Police guilty plea (age 32y)",
-  polpnd32 = "Police pending (age 32y)",
+  polglt32 = "Police found guilty (age 32y)",
+  polpnd32 = "Given a Penalty Notice for Disorder (age 32y)",
   bul14 = "Bullying victimisation (age 14y)",
   bul15 = "Bullying victimisation (age 15y)",
   bul16 = "Bullying victimisation (age 16y)",
@@ -2887,5 +3606,26 @@ derived_all <- set_variable_labels(
   bul20 = "Bullying victimisation (age 20y)",
   bul25 = "Bullying victimisation (age 25y)"
 )
+
+# Replace any remaining NAs with -5 (missing)
+# Identify variables not in longitudinal dataset
+new_vars <- setdiff(names(derived_all), names(long_vars))
+
+# Replace NAs accordingly
+derived_all <- derived_all %>%
+  mutate(
+    # Numeric variables: NA → -5
+    across(
+      all_of(new_vars[sapply(derived_all[new_vars], is.numeric)]),
+      ~ if_else(is.na(.x), -5, .x)
+    ),
+    
+    # Factor variables: NA → "Data not available"
+    across(
+      all_of(new_vars[sapply(derived_all[new_vars], is.factor)]),
+      ~ forcats::fct_expand(.x, "Data not available") |> 
+        tidyr::replace_na("Data not available")
+    )
+  )
 
 write_dta(derived_all, "derived_variables.dta")
