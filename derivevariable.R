@@ -565,17 +565,145 @@ region_all <- region_all %>%
   select(NSID, regub15, regov15, regub16, regov16,
          regor25, regor32, regint32)
 
+#### current aim education own ####
+# Load education variables from relevant sweeps
+educaim_vars <- list(
+  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>% 
+    select(NSID),
+  S4 = read_dta(file.path(data_path, sweeps$S4youngperson )) %>%
+    select(NSID, educaim17_raw = w4saim),
+  S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>%
+    select(NSID, educaim19_raw = W6Saim),
+  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
+    select(NSID, educaim20_raw = W7SAim),
+  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
+    select(NSID, W8ACTIVITY05, starts_with("W8ACQUC"), starts_with("W8VCQUC")),
+  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+    select(NSID, W9ECONACT2, starts_with("W9ACQUC"), starts_with("W9VCQUC"))
+)
+
+# Merge by ID
+educaim_all <- reduce(educaim_vars, full_join, by = "NSID")
+
+# recode missing valuse and response categories
+educaim_all <- educaim_all %>%
+  mutate(
+    # Sweep 4
+    educaim17 = case_when(
+      educaim17_raw %in% c(1:9,10, 11) ~ 1, # NVQ 1-3
+      educaim17_raw == 14 ~ 5, # not studying
+      educaim17_raw %in% 12 ~ 3, # other
+      educaim17_raw == 13 ~ 4, # none of these
+      educaim17_raw == -94 ~ -2,
+      educaim17_raw == -91 ~ -1,
+      TRUE ~ -3  # Not interviewed/present
+    ),
+    
+    # Sweep 6
+    educaim19 = case_when(
+      educaim19_raw %in% 1:4 ~ 0,
+      educaim19_raw %in% 5:12 ~ 1,
+      educaim19_raw == 14 ~ 3,
+      educaim19_raw == 15 ~ 4,
+      educaim19_raw == 16 ~ 5,
+      educaim19_raw == -94 ~ -2,
+      educaim19_raw == -91 ~ -1,
+      TRUE ~ -3
+    ),
+    
+    # Sweep 7
+    educaim20 = case_when(
+      educaim20_raw %in% 10:13 ~ 0,
+      educaim20_raw %in% 1:9 ~ 1,
+      educaim20_raw == 14 ~ 3,
+      educaim20_raw == -94 ~ -2,
+      educaim20_raw == -91 ~ 5,
+      TRUE ~ -3
+    )) %>%
+  
+  # Sweep 8
+  mutate(
+    educaim25 = case_when(
+      W8ACTIVITY05 == 0 ~ 5, #not studying
+      W8ACQUC0A == 1 | W8ACQUC0B == 1 | W8ACQUC0C == 1 |
+        W8ACQUC0D == 1 | W8ACQUC0E == 1 |
+        W8VCQUC0J == 1 | W8VCQUC0K == 1  ~ 0,
+      W8ACQUC0F == 1 | W8ACQUC0G ==1 | W8ACQUC0H ==1 | 
+        W8ACQUC0I == 1 | W8ACQUC0J == 1 | W8ACQUC0K == 1| 
+        W8ACQUC0L == 1 | W8ACQUC0M == 1 | 
+        W8VCQUC0A == 1 | W8VCQUC0B == 1 | W8VCQUC0C == 1 |
+        W8VCQUC0E == 1 | W8VCQUC0F == 1 | W8VCQUC0G == 1 | 
+        W8VCQUC0H == 1 | W8VCQUC0I == 1 | 
+        W8VCQUC0L == 1 | W8VCQUC0M == 1 | W8VCQUC0N == 1 ~ 1,
+      W8VCQUC0D == 1 |W8VCQUC0P == 1 ~ 2,
+      W8ACQUC0N == 1 | 
+        W8VCQUC0O ==1 ~ 3,
+      W8ACQUC0O == 1 | 
+        W8ACQUC0P == 1 ~ 4,
+      W8ACQUC0Q == 1 | 
+        W8VCQUC0R == 1 ~ -9,
+      W8ACQUC0P == 1 |
+        W8VCQUC0Q == 1 ~ -8,
+      TRUE ~ -3
+    ),
+    
+    # Sweep 9
+    educaim32 = case_when(
+      W9ECONACT2 == -91 ~ -8, 
+      W9ECONACT2 != 6 & W9ECONACT2 != 7 ~ 5, # not studying
+      W9ACQUC0A == 1 | W9ACQUC0B == 1 | W9ACQUC0C == 1 |
+        W9ACQUC0D == 1 | W9ACQUC0E == 1 | W9ACQUC0F == 1 |
+        W9VCQUC0A == 1 | W9VCQUC0B == 1 | W9VCQUC0C == 1 |
+        W9VCQUC0S == 1 | W9VCQUC0V == 1 | W9VCQUCAC == 1 ~ 0,
+      W9ACQUC0G == 1 | W9ACQUC0H == 1 | W9ACQUC0I == 1 | 
+        W9ACQUC0J == 1 | W9ACQUC0K == 1 | W9ACQUC0L == 1 | 
+        W9ACQUC0M == 1 | W9ACQUC0O == 1 | 
+        W9ACQUC0P == 1 | W9ACQUC0Q == 1 | 
+        W9VCQUC0D == 1 | W9VCQUC0E == 1 | W9VCQUC0F == 1 |
+        W9VCQUC0G == 1 | W9VCQUC0H == 1 | W9VCQUC0I == 1 |
+        W9VCQUC0L == 1 | W9VCQUC0M == 1 | W9VCQUC0N == 1 |
+        W9VCQUC0O == 1 | W9VCQUC0P == 1 | W9VCQUC0Q == 1 | 
+        W9VCQUC0R == 1 | W9VCQUC0T == 1 | 
+        W9VCQUC0U == 1 | W9VCQUC0W == 1 | W9VCQUC0X == 1 |
+        W9VCQUC0Y == 1 | W9VCQUC0Z == 1 | W9VCQUCAA == 1 | 
+        W9VCQUCAB == 1 | W9VCQUCAD == 1 | W9VCQUCAE == 1 ~ 1,
+      W9ACQUC0N == 1  ~ 2,
+      W9ACQUC0R ==1 | 
+        W9VCQUCAF == 1 ~ 3,
+      W9ACQUC0S == 1 |
+        W9VCQUCAG == 1 ~ 4,
+      W9ACQUC0T == 1  | 
+        W9VCQUCAH == 1 ~ -8,
+      W9ACQUC0U == 1 | 
+        W9VCQUCAI == 1 ~ -9,
+      TRUE ~ -3
+    )
+  ) %>%
+  mutate(across(c(educaim17, educaim19, educaim20, educaim25, educaim32), ~ factor(.x, 
+                                                                    levels = c(0, 1, 2, 3, 4, 5, -1, -2, -3, -8, -9), 
+                                                                    labels = c("NVQ 4-5",
+                                                                               "NVQ 1-3",
+                                                                               "None/entry",
+                                                                               "Other",
+                                                                               "None of these qualifications",
+                                                                               "Not studying",
+                                                                               "Item not applicable", 
+                                                                               "Script error/information lost",
+                                                                               "Not asked at the fieldwork stage/participated/interviewed", 
+                                                                               "Don’t know/insufficient information",
+                                                                               "Refusal")))
+  ) %>%
+  select(NSID, educaim17, educaim19, educaim20, educaim25, educaim32)
+
+
+
 #### education own ####
 # Load education variables from relevant sweeps
 educ_vars <- list(
   S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>% 
     select(NSID),
   S4 = read_dta(file.path(data_path, sweeps$S4youngperson )) %>%
-    select(NSID, educ17_raw = w4saim),
-  S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>%
-    select(NSID, educ19_raw = W6Saim),
-  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
-    select(NSID, educ20_raw = W7SAim),
+    select(NSID),
   S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
     select(NSID, W8EDUS, starts_with("W8ACQU"), starts_with("W8VCQU")),
   S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
@@ -587,46 +715,9 @@ educ_all <- reduce(educ_vars, full_join, by = "NSID")
 
 # recode missing valuse and response categories
 educ_all <- educ_all %>%
-  mutate(
-    # Sweep 4
-    educ17 = case_when(
-      educ17_raw %in% c(1:9,10, 11) ~ 1, # NVQ 1-3
-      educ17_raw == 14 ~ 2, # none/entry
-      educ17_raw %in% 12 ~ 3, # other
-      educ17_raw == 13 ~ 4, # none of these
-      educ17_raw == -94 ~ -2,
-      educ17_raw == -91 ~ -1,
-      TRUE ~ -3  # Not interviewed/present
-    ),
-    
-    # Sweep 6
-    educ19 = case_when(
-      educ19_raw %in% 1:4 ~ 0,
-      educ19_raw %in% 5:12 ~ 1,
-      educ19_raw == 14 ~ 3,
-      educ19_raw == 15 ~ 4,
-      educ19_raw == 16 ~ 2,
-      educ19_raw == -94 ~ -2,
-      educ19_raw == -91 ~ -1,
-      TRUE ~ -3
-    ),
-    
-    # Sweep 7
-    educ20 = case_when(
-      educ20_raw %in% 10:13 ~ 0,
-      educ20_raw %in% 1:9 ~ 1,
-      educ20_raw == 14 ~ 3,
-      educ20_raw == -94 ~ -2,
-      educ20_raw == -91 ~ 0,
-      TRUE ~ -3
-    )) %>%
-  
   # Sweep 8
   mutate(
     educ25 = case_when(
-      W8EDUS == 2 & educ20 > 0 ~ educ20,
-      W8EDUS == 2 & educ19 > 0 ~ educ19,
-      W8EDUS == 2 & educ17 > 0 ~ educ17,
       W8ACQU0A == 1 | W8ACQU0B == 1 | W8ACQU0C == 1 |
       W8ACQU0D == 1 | W8ACQU0E == 1 |
         W8VCQU0J == 1 | W8VCQU0K == 1  ~ 0,
@@ -646,7 +737,7 @@ educ_all <- educ_all %>%
        W8VCQU0R == 1 ~ -9,
      W8ACQU0P == 1 |
        W8VCQU0Q == 1 ~ -8,
-     TRUE ~ -3
+     NA ~ -3
     ),
     
     # Sweep 9
@@ -676,23 +767,23 @@ educ_all <- educ_all %>%
         W9VCQUAH == 1 ~ -8,
       W9ACQU0U == 1 | 
         W9VCQUAI == 1 ~ -9,
-      TRUE ~ -3
+      NA ~ -3
     )
   ) %>%
-  mutate(across(c(educ17, educ19, educ20, educ25, educ32), ~ factor(.x, 
-                                              levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9), 
-                                              labels = c("NVQ 4-5",
-                                                         "NVQ 1-3",
-                                                         "None/entry",
-                                                         "Other",
-                                                         "None of these qualifications",
-                                                         "Item not applicable", 
-                                                         "Script error/information lost",
-                                                         "Not asked at the fieldwork stage/participated/interviewed", 
-                                                         "Don’t know/insufficient information",
-                                                         "Refusal")))
+  mutate(across(c(educ25, educ32), ~ factor(.x, 
+                                            levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9), 
+                                            labels = c("NVQ 4-5",
+                                                       "NVQ 1-3",
+                                                       "None/entry",
+                                                       "Other",
+                                                       "None of these qualifications",
+                                                       "Item not applicable", 
+                                                       "Script error/information lost",
+                                                       "Not asked at the fieldwork stage/participated/interviewed", 
+                                                       "Don’t know/insufficient information",
+                                                       "Refusal")))
   ) %>%
-  select(NSID, educ17, educ19, educ20, educ25, educ32)
+  select(NSID, educ25, educ32)
 
 
 #### education parents ####
@@ -3362,6 +3453,7 @@ derived_vars <- list(
   sexuality_all,
   partnr_all,
   region_all,
+  educaim_all,
   educ_all,
   parent_edu_all,
   ecoact_all,
@@ -3420,9 +3512,11 @@ derived_all <- set_variable_labels(
   regor25 = "Region government area (age 25y)",
   regor32 = "Region government area (age 32y)",
   regint32 = "Living abroad (age 32y)",
-  educ17 = "Highest education level 3-category (age 17y)",
-  educ19 = "Highest education level 3-category (age 19y)",
-  educ20 = "Highest education level 3-category (age 20y)",
+  educaim17 = "Current qualification studied level 3-category (age 17)", 
+  educaim19 = "Current qualification studied level 3-category  (age 19y)", 
+  educaim20 = "Current qualification studied level 3-category (age 20y)", 
+  educaim25 = "Current qualification studied level 3-category (age 25y)", 
+  educaim32 = "Current qualification studied level 3-category (age 32y)",
   educ25 = "Highest education level 3-category (age 25y)",
   educ32 = "Highest education level 3-category (age 32y)",
   educma = "Highest education level mother 3-category (CM age 17-14y)",
@@ -3490,10 +3584,10 @@ derived_all <- set_variable_labels(
   ghq17 = "GHQ-12 12-item score (0-12) (age 17y)",
   ghq25 = "GHQ-12 12-item score (0-12) (age 25y)",
   ghq32 = "GHQ-12 12-item score (0-12) (age 32y)",
-  ghqtl15 = "GHQ-12 sum score of the each item (0-36) (age 15y)",
-  ghqtl17 = "GHQ-12 sum score of the each item (0-36) (age 17y)",
-  ghqtl25 = "GHQ-12 sum score of the each item (0-36) (age 25y)",
-  ghqtl32 = "GHQ-12 sum score of the each item (0-36) (age 32y)",
+  ghqtl15 = "GHQ-12 sum score of the each item (12-48) (age 15y)",
+  ghqtl17 = "GHQ-12 sum score of the each item (12-48) (age 17y)",
+  ghqtl25 = "GHQ-12 sum score of the each item (12-48) (age 25y)",
+  ghqtl32 = "GHQ-12 sum score of the each item (12-48) (age 32y)",
   lsat20 = "Life satisfaction (age 20y)",
   lsat25 = "Life satisfaction (age 25y)",
   lsat32 = "Life satisfaction (age 32y)",
