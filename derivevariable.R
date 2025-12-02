@@ -3654,6 +3654,7 @@ derived_all <- set_variable_labels(
   alcfreq14 = "Alcohol frequency (age 14y)", 
   alcfreq15 = "Alcohol frequency (age 15y)", 
   alcfreq16 = "Alcohol frequency (age 16y)", 
+  alcfreq17 = "Alcohol frequency (age 17y)", 
   alcfreq19 = "Alcohol frequency (age 19y)", 
   alcfreq20 = "Alcohol frequency (age 20y)",
   audita25 = "AUDIT A (age 25y)", 
