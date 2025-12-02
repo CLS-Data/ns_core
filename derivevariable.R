@@ -704,10 +704,12 @@ educ_vars <- list(
     select(NSID),
   S4 = read_dta(file.path(data_path, sweeps$S4youngperson )) %>%
     select(NSID),
+  S8dv = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>%
+    select(NSID, W8DHANVQH),
   S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
-    select(NSID, W8EDUS, starts_with("W8ACQU"), starts_with("W8VCQU")),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
-    select(NSID, starts_with("W9ACQU"), starts_with("W9VCQU"))
+    select(NSID, starts_with("W8VCQU")),
+  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+    select(NSID, W9DANVQH, W9DVNVQH)
 )
 
 # Merge by ID
@@ -718,56 +720,33 @@ educ_all <- educ_all %>%
   # Sweep 8
   mutate(
     educ25 = case_when(
-      W8ACQU0A == 1 | W8ACQU0B == 1 | W8ACQU0C == 1 |
-      W8ACQU0D == 1 | W8ACQU0E == 1 |
-        W8VCQU0J == 1 | W8VCQU0K == 1  ~ 0,
-     W8ACQU0F == 1 | W8ACQU0G ==1 | W8ACQU0H ==1 | 
-     W8ACQU0I == 1 | W8ACQU0J == 1 | W8ACQU0K == 1| 
-     W8ACQU0L == 1 | W8ACQU0M == 1 | 
-       W8VCQU0A == 1 | W8VCQU0B == 1 | W8VCQU0C == 1 |
-       W8VCQU0E == 1 | W8VCQU0F == 1 | W8VCQU0G == 1 | 
-       W8VCQU0H == 1 | W8VCQU0I == 1 | 
-       W8VCQU0L == 1 | W8VCQU0M == 1 | W8VCQU0N == 1 ~ 1,
-     W8VCQU0D == 1 |W8VCQU0P == 1 ~ 2,
-     W8ACQU0N == 1 | 
-       W8VCQU0O ==1 ~ 3,
-     W8ACQU0O == 1 | 
-       W8ACQU0P == 1 ~ 4,
-     W8ACQU0Q == 1 | 
-       W8VCQU0R == 1 ~ -9,
-     W8ACQU0P == 1 |
-       W8VCQU0Q == 1 ~ -8,
-     NA ~ -3
+      W8DHANVQH %in% c(4,5) ~ 0,
+      W8VCQU0J == 1 | W8VCQU0K == 1  ~ 0,
+      W8DHANVQH %in% c(1, 2, 3) ~ 1, 
+      W8VCQU0A == 1 | W8VCQU0B == 1 | W8VCQU0C == 1 |
+        W8VCQU0E == 1 | W8VCQU0F == 1 | W8VCQU0G == 1 | 
+        W8VCQU0H == 1 | W8VCQU0I == 1 | 
+        W8VCQU0L == 1 | W8VCQU0M == 1 | W8VCQU0N == 1 ~ 1,
+      W8VCQU0D == 1 |W8VCQU0P == 1 ~ 2,
+      W8DHANVQH == 95 ~ 3,
+      W8VCQU0O ==1 ~ 3,
+      W8DHANVQH == 96 ~ 4,
+      W8DHANVQH < 0 ~ W8DHANVQH,
+      W8VCQU0R == 1 ~ -9,
+      W8VCQU0Q == 1 ~ -8,
+      TRUE ~ -3
     ),
     
     # Sweep 9
     educ32 = case_when(
-      W9ACQU0A == 1 | W9ACQU0B == 1 | W9ACQU0C == 1 |
-      W9ACQU0D == 1 | W9ACQU0E == 1 | W9ACQU0F == 1 |
-        W9VCQU0A == 1 | W9VCQU0B == 1 | W9VCQU0C == 1 |
-        W9VCQU0S == 1 | W9VCQU0V == 1 | W9VCQUAC == 1 ~ 0,
-      W9ACQU0G == 1 | W9ACQU0H == 1 | W9ACQU0I == 1 | 
-      W9ACQU0J == 1 | W9ACQU0K == 1 | W9ACQU0L == 1 | 
-      W9ACQU0M == 1 | W9ACQU0O == 1 | 
-      W9ACQU0P == 1 | W9ACQU0Q == 1 | 
-        W9VCQU0D == 1 | W9VCQU0E == 1 | W9VCQU0F == 1 |
-        W9VCQU0G == 1 | W9VCQU0H == 1 | W9VCQU0I == 1 |
-        W9VCQU0L == 1 | W9VCQU0M == 1 | W9VCQU0N == 1 |
-        W9VCQU0O == 1 | W9VCQU0P == 1 | W9VCQU0Q == 1 | 
-        W9VCQU0R == 1 | W9VCQU0T == 1 | 
-        W9VCQU0U == 1 | W9VCQU0W == 1 | W9VCQU0X == 1 |
-        W9VCQU0Y == 1 | W9VCQU0Z == 1 | W9VCQUAA == 1 | 
-        W9VCQUAB == 1 | W9VCQUAD == 1 | W9VCQUAE == 1 ~ 1,
-      W9ACQU0N == 1  ~ 2,
-      W9ACQU0R ==1 | 
-        W9VCQUAF == 1 ~ 3,
-      W9ACQU0S == 1 |
-        W9VCQUAG == 1 ~ 4,
-      W9ACQU0T == 1  | 
-        W9VCQUAH == 1 ~ -8,
-      W9ACQU0U == 1 | 
-        W9VCQUAI == 1 ~ -9,
-      NA ~ -3
+      W9DANVQH %in% c(4, 5) | W9DVNVQH %in% c(4, 5) ~ 0,
+      W9DANVQH %in% c(1, 2, 3) | W9DVNVQH %in% c(1, 2, 3) ~ 1,
+      W9DANVQH == 0 | W9DVNVQH == 0 ~ 2,
+      W9DANVQH == 95 | W9DVNVQH == 95 ~ 3,
+      W9DANVQH == 96 | W9DVNVQH == 96 ~ 4,
+      W9DANVQH < 0 ~ W9DANVQH,
+      W9DVNVQH < 0 ~ W9DVNVQH,
+      TRUE ~ -3
     )
   ) %>%
   mutate(across(c(educ25, educ32), ~ factor(.x, 
@@ -1293,7 +1272,7 @@ hown_all <- hown_all %>%
     ),
     hownteen15 = case_when(
       hown15 > 0 ~ hown15,
-      hown15 == -999 ~ -2,
+      hown15 %in% c(-998,-997,-995,-99) ~ -2,
       hown15 == -92 ~ -9,
       hown15 == -91 ~ -1,
       hown15 == -1 ~ -8,
@@ -1309,7 +1288,7 @@ hown_all <- hown_all %>%
     ),
     hownteen17 = case_when(
       hown17 > 0 ~ hown17,
-      hown17 == -999 ~ -2,
+      hown17 %in% c(-999,-997) ~ -2,
       hown17 == -92 ~ -9,
       hown17 == -91 ~ -1,
       hown17 == -1 ~ -8,
@@ -1378,7 +1357,7 @@ hown_all <- hown_all %>%
       hown15 %in% 4:6 ~ 4,
       hown15 == 7 ~ 5,
       hown15 == 8 ~ 6,
-      hown15 == -999 ~ -2,
+      hown15 %in% c(-998,-997,-995,-99) ~ -2,
       hown15 == -92 ~ -9,
       hown15 == -91 ~ -1,
       hown15 == -1 ~ -8,
@@ -1404,7 +1383,7 @@ hown_all <- hown_all %>%
       hown17 %in% 4:6 ~ 4,
       hown17 == 7 ~ 5,
       hown17 == 8 ~ 6,
-      hown17 == -999 ~ -2,
+      hown17 %in% c(-999,-997) ~ -2,
       hown17 == -92 ~ -9,
       hown17 == -91 ~ -1,
       hown17 == -1 ~ -8,
@@ -1648,16 +1627,16 @@ hh_income_all <- hh_income_all %>%
       is.na(incwhh16) ~ -3,
       incwhh16 == -99 ~ -3,
       incwhh16 == -92 ~ -9,
-      incwhh16 == -91 ~ -8,
+      incwhh16 == -1 ~ -8,
       incwhh16 >= 1 & incwhh16 <= 12 ~ incwhh16
     ),
     
     # Sweep 4
     incwhh17 = case_when(
       is.na(incwhh17) ~ -3,
-      incwhh17 == -99 ~ -3,
+      incwhh17 %in% c(-996, -99) ~ -3,
       incwhh17 == -92 ~ -9,
-      incwhh17 == -91 ~ -8,
+      incwhh17 == -1 ~ -8,
       incwhh17 >= 1 & incwhh17 <= 12 ~ incwhh17
     )
   ) %>%
@@ -2612,40 +2591,41 @@ alc_all <- alc_all %>%
     alcfreq20 = recode_freq(alcfreq_S7, "S7", alcever_S7),
   )
 
-# AUDIT Recode 
-recode_audit <- function(x) {
-  case_when(
-    x >= 0 & x <= 5 ~ x,
-    x == -9 ~ -9,
-    x == -8 ~ -8,
-    x == -1 ~ -1,
-    TRUE ~ -3
-  )
-}
 
-alc_all <- alc_all %>%
+
+alc_all_clean <- alc_all %>%
   mutate(
-    audita25 = recode_audit(audita25), 
-    audita32 = recode_audit(audita32))%>%
+    audita25 = case_when(
+      audita25 > 0 ~ audita25 - 1,
+      audita25 < 0 ~ audita25,
+      is.na(audita25) ~ -3,
+    ), 
+    audita32 = case_when(
+      audita32 > 0 ~ audita32 -1,
+      audita32 < 0 ~ audita32,
+      is.na(audita32) ~ -3,
+    ))%>%
   mutate(
     auditb25 = case_when(
-      audita25 == 1 ~ 0, 
-      audita25 > 1 ~ recode_audit(auditb25), 
-      TRUE ~ recode_audit(auditb25)),
+      audita25 == 0 ~ 0, 
+      audita25 > 0 & auditb25 > 0 ~ auditb25,
+      auditb25 < 0 ~ auditb25,
+      is.na(auditb25) ~ -3),
     auditb32 = case_when(
-      audita32 == 1 ~ 0,
-      auditb32 > 1 ~ recode_audit(auditb32),
-      TRUE ~ recode_audit(auditb32)),
+      audita32 == 0 ~ 0,
+      audita32 > 0 & auditb32 > 0 ~ auditb32,
+      auditb32 < 0 ~ auditb32,
+      is.na(auditb32) ~ -3),
     auditc25 = case_when(
-      audita25 == 1 ~ 0,
-      auditb25 == 1 ~ 0,
-      auditc25 > 1 ~ recode_audit(auditc25),
-      TRUE ~ recode_audit(auditc25)),
+      audita25 == 0 ~ 0,
+      is.na(auditc25) ~ -3,
+      auditc25 < 0 ~ auditc25,
+      TRUE ~ auditc25-1),
     auditc32 = case_when(
-      audita32 == 1 ~ 0,
-      auditb32 == 1 ~ 0,
-      auditc32 > 1 ~recode_audit(auditc32),
-      TRUE ~ recode_audit(auditc32))
+      audita32 == 0 ~ 0,
+      is.na(auditc32) ~ -3,
+      auditc32 < 0 ~ auditc32,
+      TRUE ~ auditc32-1)
   ) %>%
   mutate(alcfst = factor(alcfst, 
                            levels = c(14, 15, 16, 17, 19, 20, 25, 32, 99, -1, -2, -3, -8, -9), 
@@ -2688,8 +2668,9 @@ alc_all <- alc_all %>%
                                                           "Don’t know/insufficient information",
                                                           "Refusal"))),
          across(c(auditb25, auditb32), ~ factor(.x, 
-                                               levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9),
-                                               labels = c("1–2 drinks",
+                                               levels = c(0, 1, 2, 3, 4, 5, -1, -2, -3, -8, -9),
+                                               labels = c("0",
+                                                          "1–2 drinks",
                                                           "3–4 drinks",
                                                           "5–6 drinks",
                                                           "7–9 drinks",
@@ -2960,9 +2941,11 @@ recode_exercise <- function(x) {
     x %in% c(1, 2, 3) ~ x - 1,      # Keep as is
     x %in% c(4, 5, 6) ~ 3,     # 4- 6 = less than once a week/hardly ever/never
     x == -92 ~ -9,          # Refused
-    x %in% c(-91) ~ -1,     # Not applicable / insufficient info
-    x %in% c(-99) ~ -3,     # Not interviewed
-    TRUE ~ -3              # Everything else = error/lost
+    x == -91 ~ -1,     # Not applicable / insufficient info
+    x == -99 ~ -3,     # Not interviewed
+    x == -1 ~ -8,      # Don't know
+    x %in% c(-998,-997,-995) ~ -2,  # Script error/information lost
+    is.na(x) ~ -3              
   )
 }
 
@@ -2982,7 +2965,7 @@ spt_all <- spt_all %>%
       spt25 == -9 ~ -9,
       spt25 == -8 ~ -8,
       spt25 == -1 ~ -1,
-      TRUE ~ -3
+      is.na(spt25) ~ -3
     ),
     spt32 = case_when(
       spt32 %in% c(5, 6, 7)  ~ 0,
@@ -2992,13 +2975,15 @@ spt_all <- spt_all %>%
       spt32 == -9 ~ -9,
       spt32 == -8 ~ -8,
       spt32 == -1 ~ -1,
-      TRUE ~ -3
+      is.na(spt32) | spt32 == -3 ~ -3
     )
   ) %>%
   mutate(across(c(starts_with("spt")), ~ factor(.x, 
-                                                levels = c(0, 1, -1, -2, -3, -8, -9), 
-                                                labels = c("No",
-                                                           "Yes",
+                                                levels = c(0, 1, 2, 3, -1, -2, -3, -8, -9), 
+                                                labels = c("Most days",
+                                                           "More than once a week",
+                                                           "Once a week",
+                                                           "Less than once a week/hardly ever/never",
                                                            "Item not applicable", 
                                                            "Script error/information lost",
                                                            "Not asked at the fieldwork stage/participated/interviewed",
@@ -3222,7 +3207,9 @@ recode_pol <- function(x) {
     x %in% c(-97, -92) ~ -9,
     x ==  -91 ~ -1,
     x %in% c(-96, -1) ~ -8,
-    x %in% c(-99) ~ -3
+    x %in% c(-998, -997, -995) ~ -2,
+    x %in% c(-99) ~ -3,
+    is.na(x) ~ -3
   )
 }
 
@@ -3234,7 +3221,9 @@ recode_cnt <- function(x, ever) {
     x %in% c(-97, -92) ~ -9,
     x ==  -91 ~ -1,
     x %in% c(-96, -1) ~ -8,
-    x %in% c(-99) ~ -3
+    x %in% c(-998, -997, -995) ~ -2,
+    x %in% c(-99, -996) ~ -3,
+    is.na(x) ~ -3,
   )
 }
 
@@ -3476,7 +3465,7 @@ derived_vars <- list(
   health_all,
   lsi_all,
   smoking_all,
-  alc_all,
+  alc_all_clean,
   drug_final,
   spt_all,
   absence_all,
