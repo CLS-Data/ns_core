@@ -32,6 +32,7 @@ cache/
 *.tsv
 *.docx
 *.doc
+*.pdf
 
 # OS-specific
 .DS_Store
