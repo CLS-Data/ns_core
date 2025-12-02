@@ -3490,6 +3490,27 @@ derived_vars <- list(
 # Combine all datasets by NSID
 derived_all <- reduce(derived_vars, full_join, by = "NSID")
 
+# Replace any remaining NAs with -5 (missing)
+# Identify variables not in longitudinal dataset
+new_vars <- setdiff(names(derived_all), names(long_vars))
+
+# Replace NAs accordingly
+derived_all <- derived_all %>%
+  mutate(
+    # Numeric variables: NA → -5
+    across(
+      all_of(new_vars[sapply(derived_all[new_vars], is.numeric)]),
+      ~ if_else(is.na(.x), -5, .x)
+    ),
+    
+    # Factor variables: NA → "Data not available"
+    across(
+      all_of(new_vars[sapply(derived_all[new_vars], is.factor)]),
+      ~ forcats::fct_expand(.x, "Data not available") |> 
+        tidyr::replace_na("Data not available")
+    )
+  )
+
 # set multiple labels at once; returns the modified data frame
 derived_all <- set_variable_labels(
   derived_all,
@@ -3698,28 +3719,18 @@ derived_all <- set_variable_labels(
   bul16 = "Bullying victimisation (age 16y)",
   bul17 = "Bullying victimisation (age 17y)",
   bul20 = "Bullying victimisation (age 20y)",
-  bul25 = "Bullying victimisation (age 25y)"
+  bul25 = "Bullying victimisation (age 25y)",
+  MAINBOOST      = "Whether main or boost sample",
+  DATA_AVAILABILITY = "Whether the data is available for research use",
+  W1OUTCOME      = "Fieldwork outcome at Wave 1",
+  W2OUTCOME      = "Fieldwork outcome at Wave 2",
+  W3OUTCOME      = "Fieldwork outcome at Wave 3",
+  W4OUTCOME      = "Fieldwork outcome at Wave 4",
+  W5OUTCOME      = "Fieldwork outcome at Wave 5",
+  W6OUTCOME      = "Fieldwork outcome at Wave 6",
+  W7OUTCOME      = "Fieldwork outcome at Wave 7",
+  W8OUTCOME      = "Fieldwork outcome at Wave 8",
+  W9OUTCOME      = "Fieldwork outcome at Wave 9"
 )
-
-# Replace any remaining NAs with -5 (missing)
-# Identify variables not in longitudinal dataset
-new_vars <- setdiff(names(derived_all), names(long_vars))
-
-# Replace NAs accordingly
-derived_all <- derived_all %>%
-  mutate(
-    # Numeric variables: NA → -5
-    across(
-      all_of(new_vars[sapply(derived_all[new_vars], is.numeric)]),
-      ~ if_else(is.na(.x), -5, .x)
-    ),
-    
-    # Factor variables: NA → "Data not available"
-    across(
-      all_of(new_vars[sapply(derived_all[new_vars], is.factor)]),
-      ~ forcats::fct_expand(.x, "Data not available") |> 
-        tidyr::replace_na("Data not available")
-    )
-  )
 
 write_dta(derived_all, "derived_variables.dta")
