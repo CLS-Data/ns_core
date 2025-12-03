@@ -708,8 +708,10 @@ educ_vars <- list(
     select(NSID, W8DHANVQH),
   S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
     select(NSID, starts_with("W8VCQU")),
-  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
-    select(NSID, W9DANVQH, W9DVNVQH)
+  S9dv = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+    select(NSID, W9DANVQH, W9DVNVQH),
+  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+    select(NSID, starts_with("W9ACQU"), starts_with("W9VCQU"))
 )
 
 # Merge by ID
@@ -747,6 +749,73 @@ educ_all <- educ_all %>%
       W9DANVQH < 0 ~ W9DANVQH,
       W9DVNVQH < 0 ~ W9DVNVQH,
       TRUE ~ -3
+    ),
+    educadtl32 = case_when(
+      W9ACQU0A == 1 ~ 1,
+      W9ACQU0B == 1 ~ 2,
+      W9ACQU0C == 1 ~ 3,
+      W9ACQU0D == 1 ~ 4,
+      W9ACQU0E == 1 ~ 5,
+      W9ACQU0F == 1 ~ 6,
+      W9ACQU0G == 1 ~ 7,
+      W9ACQU0H == 1 ~ 8,
+      W9ACQU0I == 1 ~ 9,
+      W9ACQU0J == 1 ~ 10,
+      W9ACQU0K == 1 ~ 11,
+      W9ACQU0L == 1 ~ 12,
+      W9ACQU0M == 1 ~ 13,
+      W9ACQU0N == 1 ~ 14,
+      W9ACQU0O == 1 ~ 15,
+      W9ACQU0P == 1 ~ 16,
+      W9ACQU0Q == 1 ~ 17,
+      W9ACQU0R == 1 ~ 18,
+      W9ACQU0S == 1 ~ 19,
+      W9ACQU0T == 1 ~ -8,
+      W9ACQU0U == 1 ~ -9,
+      W9ACQU0V == 1 ~ -2,
+      if_all(starts_with("W9ACQU0"), ~ .x == -1) ~ -1,
+      if_all(starts_with("W9ACQU0"), ~ .x == 2) ~ 19,
+      if_all(starts_with("W9ACQU0"), ~ is.na(.x) | .x == -3) ~ -3
+    ),
+    educvdtl32 = case_when(
+      W9VCQU0A == 1 ~ 1,
+      W9VCQU0B == 1 ~ 2,
+      W9VCQU0C == 1 ~ 3,
+      W9VCQU0D == 1 ~ 4,
+      W9VCQU0E == 1 ~ 5,
+      W9VCQU0F == 1 ~ 6,
+      W9VCQU0G == 1 ~ 7,
+      W9VCQU0H == 1 ~ 8,
+      W9VCQU0I == 1 ~ 9,
+      W9VCQU0J == 1 ~ 10,
+      W9VCQU0K == 1 ~ 11,
+      W9VCQU0L == 1 ~ 12,
+      W9VCQU0M == 1 ~ 13,
+      W9VCQU0N == 1 ~ 14,
+      W9VCQU0O == 1 ~ 15,
+      W9VCQU0P == 1 ~ 16,
+      W9VCQU0Q == 1 ~ 17,
+      W9VCQU0R == 1 ~ 18,
+      W9VCQU0S == 1 ~ 19,
+      W9VCQU0T == 1 ~ 20,
+      W9VCQU0U == 1 ~ 21,
+      W9VCQU0V == 1 ~ 22,
+      W9VCQU0W == 1 ~ 23,
+      W9VCQU0X == 1 ~ 24,
+      W9VCQU0Y == 1 ~ 25,
+      W9VCQU0Z == 1 ~ 26,
+      W9VCQUAA == 1 ~ 27,
+      W9VCQUAB == 1 ~ 28,
+      W9VCQUAC == 1 ~ 29,
+      W9VCQUAD == 1 ~ 30,
+      W9VCQUAE == 1 ~ 31,
+      W9VCQUAF == 1 ~ 32,
+      W9VCQUAG == 1 ~ 33,
+      W9VCQUAH == 1 ~ -8,
+      W9VCQUAI == 1 ~ -9,
+      if_all(starts_with("W9VCQU"), ~ .x == -1) ~ -1,
+      if_all(starts_with("W9VCQU"), ~ .x == 2) ~ 33,
+      if_all(starts_with("W9VCQU"), ~ is.na(.x) | .x == -3) ~ -3
     )
   ) %>%
   mutate(across(c(educ25, educ32), ~ factor(.x, 
@@ -760,9 +829,75 @@ educ_all <- educ_all %>%
                                                        "Script error/information lost",
                                                        "Not asked at the fieldwork stage/participated/interviewed", 
                                                        "Don’t know/insufficient information",
-                                                       "Refusal")))
+                                                       "Refusal"))),
+         educadtl32 = factor(educadtl32, 
+                              levels = c(1:19, -1, -2, -3, -8, -9), 
+                              labels = c("Doctorate or equivalent",
+                                         "Masters or equivalent",
+                                         "Undergraduate or equivalent",
+                                         "Post-graduate Diplomas and Certificates",
+                                         "Diplomas in higher education and other higher education qualifications",
+                                         "Teaching qualifications for schools or further education",
+                                         "A/AS Levels or equivalent",
+                                         "GCSE - Grade A-C, Level 4-9",
+                                         "GCSE - Grade D-G, Level 1-3",
+                                         "Scottish Qualifications - SCE Higher",
+                                         "Scottish Qualifications - Scottish Certificate Sixth Year Studies",
+                                         "Scottish Qualifications - SCE Standard",
+                                         "Scottish Qualifications - National 4 and 5",
+                                         "Scottish Qualifications - National 2 and 3",
+                                         "Irish Qualifications - Leaving Certificate",
+                                         "Irish Qualifications - Junior Certificate grade A-C",
+                                         "Irish Qualifications - Junior Certificate grade D and below",
+                                         "Other academic qualifications (including overseas)",
+                                         "None of these qualifications",
+                                         "Item not applicable", 
+                                         "Script error/information lost",
+                                         "Not asked at the fieldwork stage/participated/interviewed", 
+                                         "Don’t know/insufficient information",
+                                         "Refusal")),
+         educvdtl32 = factor(educvdtl32, 
+                              levels = c(1:33, -1, -2, -3, -8, -9), 
+                              labels = c("Professional qualifications at degree level",
+                                         "Nursing or other medical qualifications",
+                                         "NVQ or SVQ - Level 4 or 5",
+                                         "NVQ or SVQ -  Level 3",
+                                         "NVQ or SVQ - Level 2",
+                                         "NVQ or SVQ - Level 1",
+                                         "GNVQ - GNVQ Advanced",
+                                         "GNVQ - GNVQ Intermediate",
+                                         "GNVQ - Level 3",
+                                         "GNVQ - Level 2",
+                                         "GNVQ - Level Foundation",
+                                         "City & Guilds - advanced craft, Part III",
+                                         "City & Guilds - craft, Part II",
+                                         "City & Guilds - craft, Part I",
+                                         "City & Guilds - Level 3",
+                                         "City & Guilds - Level 2",
+                                         "City & Guilds - Level 1",
+                                         "RSA - Advanced Diploma",
+                                         "RSA - Higher Diploma",
+                                         "RSA - Diploma",
+                                         "RSA - RSA Stage I, II,III",
+                                         "BTEC - Higher Level BTEC",
+                                         "BTEC - BTEC National",
+                                         "BTEC - BTEC First",
+                                         "SCOTVEC-  SCOTVEC National Certificate",
+                                         "SCOTVEC-  SCOTVEC first or general diploma",
+                                         "SCOTVEC - SCOTVEC general diploma",
+                                         "SCOTVEC - SCOTVEC modules",
+                                         "HND or HNC",
+                                         "OND or ONCM",
+                                         "Junior certificate",
+                                         "Other vocational qualifications (including some overseas)",
+                                         "None of these qualifications",
+                                         "Item not applicable", 
+                                         "Script error/information lost",
+                                         "Not asked at the fieldwork stage/participated/interviewed", 
+                                         "Don’t know/insufficient information",
+                                         "Refusal"))
   ) %>%
-  select(NSID, educ25, educ32)
+  select(NSID, educ25, educ32, educadtl32, educvdtl32)
 
 
 #### education parents ####
@@ -796,7 +931,7 @@ parent_edu_all <- parent_edu_all %>%
 parent_edu_all <- parent_edu_all %>%
   mutate(
     #mother full education (aggregate the information from sweeps 1-4)
-    educmadtl = case_when(
+    educdtlma = case_when(
       !is.na(educma_S4) & educma_S4 > 0 ~ educma_S4,
       !is.na(educma_S2) & educma_S2 > 0 ~ educma_S2,
       !is.na(educma_S1) & educma_S1 > 0 ~ educma_S1,
@@ -807,15 +942,15 @@ parent_edu_all <- parent_edu_all %>%
     ), 
     #transform to 3-level education (mother)
     educma = case_when(
-      educmadtl %in% 1:4 ~ 0,
-      educmadtl %in% 5:17 ~ 1,
-      educmadtl == 18 ~ 2,
-      educmadtl == 19 ~ 3, # other
-      educmadtl == 20 ~ 4, # none of these qualifications
-      TRUE ~ educmadtl  # keep negatives as-is
+      educdtlma %in% 1:4 ~ 0,
+      educdtlma %in% 5:17 ~ 1,
+      educdtlma == 18 ~ 2,
+      educdtlma == 19 ~ 3, # other
+      educdtlma == 20 ~ 4, # none of these qualifications
+      TRUE ~ educdtlma  # keep negatives as-is
     ),
     #father full education (aggregate the information from sweeps 1-4)
-    educpadtl = case_when(
+    educdtlpa = case_when(
       !is.na(educpa_S1) & educpa_S1 > 0 ~ educpa_S1,
       !is.na(educpa_S2) & educpa_S2 > 0 ~ educpa_S2,
       !is.na(educpa_S4) & educpa_S4 > 0 ~ educpa_S4,
@@ -826,12 +961,12 @@ parent_edu_all <- parent_edu_all %>%
     ),
     #transform to 3-level education (father)
     educpa = case_when(
-      educpadtl %in% 1:4 ~ 0,
-      educpadtl %in% 5:17 ~ 1,
-      educpadtl == 18 ~ 2,
-      educpadtl == 19 ~ 3, 
-      educpadtl == 20 ~ 4,
-      TRUE ~ educpadtl  # keep negatives as-is
+      educdtlpa %in% 1:4 ~ 0,
+      educdtlpa %in% 5:17 ~ 1,
+      educdtlpa == 18 ~ 2,
+      educdtlpa == 19 ~ 3, 
+      educdtlpa == 20 ~ 4,
+      TRUE ~ educdtlpa  # keep negatives as-is
     )
   )%>%
   mutate(across(c(educma, educpa), ~ factor(.x, 
@@ -845,9 +980,36 @@ parent_edu_all <- parent_edu_all %>%
                                                        "Script error/information lost",
                                                        "Not asked at the fieldwork stage/participated/interviewed", 
                                                        "Don’t know/insufficient information",
-                                                       "Refusal")))
+                                                       "Refusal"))),
+         across(c(educdtlma, educdtlpa), ~ factor(.x, 
+                                                 levels = c(1:20, -1, -2, -3, -8, -9), 
+                                                 labels = c("Higher Degree",
+                                                            "First degree",
+                                                            "HE Diploma",
+                                                            "HNC/HND/NVQ4",
+                                                            "Teaching qualification, non-degree",
+                                                            "Nursing qualification, non-degree",
+                                                            "A Levels",
+                                                            "OND/ONC",
+                                                            "City and guilds part III, NVQ3",
+                                                            "CSYS",
+                                                            "Scottish Higher Grade",
+                                                            "AS Level",
+                                                            "Trade apprenticeship",
+                                                            "City and guilds part II, NVQ2",
+                                                            "GCSE grade A-C and equivalent",
+                                                            "GCSE grade D-E and equivalent",
+                                                            "City and guilds part I, NVQ1",
+                                                            "Youth training, skill seekers",
+                                                            "Qualification, level unspecified",
+                                                            "No qualification mentioned",
+                                                            "Item not applicable", 
+                                                            "Script error/information lost",
+                                                            "Not asked at the fieldwork stage/participated/interviewed", 
+                                                            "Don’t know/insufficient information",
+                                                            "Refusal")))
   ) %>%
-  select(NSID, educma, educpa)
+  select(NSID, educma, educpa, educdtlma, educdtlpa)
 
 
 #### economic activity ####
@@ -3529,8 +3691,12 @@ derived_all <- set_variable_labels(
   educaim32 = "Current qualification studied level 3-category (age 32y)",
   educ25 = "Highest education level 3-category (age 25y)",
   educ32 = "Highest education level 3-category (age 32y)",
+  educadtl32 = "Highest education detail - academic (age 32)", 
+  educvdtl32 = "Highest education detail - vocational (age 32)",
   educma = "Highest education level mother 3-category (CM age 17-14y)",
   educpa = "Highest education level father 3-category (CM age 17-14y)",
+  educdtlpa = "Highest education detail father (CM age 14-17y)",
+  educdtlma = "Highest education detail mother (CM age 14-17y)",
   ecoact17 = "Economic activity simple (age 17y)",
   ecoact18 = "Economic activity simple (age 18y)",
   ecoact19 = "Economic activity simple (age 19y)",
