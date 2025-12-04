@@ -23,6 +23,7 @@ cache/
 *_cache/
 *.log
 *.html
+/README_files/
 
 # Sensitive data & derived datasets
 *.csv
@@ -54,3 +55,6 @@ logs/
 *.bak
 *.swp
 .Rproj.user
+
+# Code review files
+/review/
