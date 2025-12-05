@@ -1,8 +1,8 @@
 # GHQ --------------------------------------------------------------------
 # Load GHQ-12 derived score and item-level data
 ghq_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>% select(NSID),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>% select(NSID),
+  S2 = ns_data[["S2youngperson"]] %>%
     select(
       NSID,
       ghq15 = W2ghq12scr,
@@ -24,7 +24,7 @@ ghq_vars <- list(
         )
       )
     ),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(
       NSID,
       ghq17 = W4ghq12scr,
@@ -46,13 +46,13 @@ ghq_vars <- list(
         )
       )
     ),
-  S8 = read_dta(file.path(data_path, sweeps$S8selfcompletion)) %>%
+  S8 = ns_data[["S8selfcompletion"]] %>%
     select(NSID, starts_with("W8GHQ12_")),
-  S8_derive = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>%
+  S8_derive = ns_data[["S8derivedvariable"]] %>%
     select(NSID, ghq25 = W8DGHQSC),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, starts_with("W9GHQ12_")),
-  S9_derive = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+  S9_derive = ns_data[["S9derivedvariable"]] %>%
     select(NSID, ghq32 = W9DGHQSC)
 )
 
@@ -186,13 +186,13 @@ ghq_all <- ghq_all %>%
 # Life Satisfaction --------------------------------------------------------------------
 # Load life satisfaction variables from each sweep
 lsat_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>% select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>% select(NSID),
-  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>% select(NSID),
+  S4 = ns_data[["S4youngperson"]] %>% select(NSID),
+  S7 = ns_data[["S7youngperson"]] %>%
     select(NSID, lsat20 = W7OSatisYP),
-  S8 = read_dta(file.path(data_path, sweeps$S8selfcompletion)) %>%
+  S8 = ns_data[["S8selfcompletion"]] %>%
     select(NSID, lsat25 = W8OSATIS),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, lsat32 = W9OSATIS)
 )
 
@@ -245,11 +245,11 @@ lsat_all <- lsat_all %>%
 # Self-Harm --------------------------------------------------------------------
 # Load S8 self-harm variables
 sharm_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID),
-  S8 = read_dta(file.path(data_path, sweeps$S8selfcompletion)) %>%
+  S8 = ns_data[["S8selfcompletion"]] %>%
     select(NSID, sharm25_ever = W8HARM, sharm25_freq = W8HARM2)
 )
 
@@ -294,11 +294,11 @@ sharm_all <- sharm_all %>%
 # GAD --------------------------------------------------------------------
 # Load GAD-7 derived score and item-level data
 gad_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID),
-  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+  S9 = ns_data[["S9derivedvariable"]] %>%
     select(NSID, gad32 = W9DGAD2)
 )
 
@@ -330,11 +330,11 @@ gad_all <- gad_all %>%
 # PHQ --------------------------------------------------------------------
 # Load GAD-7 derived score and item-level data
 phq_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID),
-  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+  S9 = ns_data[["S9derivedvariable"]] %>%
     select(NSID, phq32 = W9DPHQ2)
 )
 
@@ -366,11 +366,11 @@ phq_all <- phq_all %>%
 # UCLA Loneliness --------------------------------------------------------------------
 # Load GAD-7 derived score and item-level data
 lon_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID),
-  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+  S9 = ns_data[["S9derivedvariable"]] %>%
     select(NSID, lon32 = W9DLONELINESS)
 )
 
@@ -403,17 +403,17 @@ lon_all <- lon_all %>%
 # Self-Rated General Health --------------------------------------------------------------------
 # Load relevant sweep files and select needed variables
 health_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, ghea15 = W2hea1cYP),
-  S3 = read_dta(file.path(data_path, sweeps$S3youngperson)) %>%
+  S3 = ns_data[["S3youngperson"]] %>%
     select(NSID, ghea16 = W3hea1cYP),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID, ghea17 = W4Hea1CYP),
-  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
+  S8 = ns_data[["S8maininterview"]] %>%
     select(NSID, ghea25 = W8GENA),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, ghea32 = W9HLTHGEN)
 )
 
@@ -564,19 +564,19 @@ health_all <- health_all %>%
 # Long-Term Illness --------------------------------------------------------------------
 # Load relevant sweep files and select needed variables
 long_term_illness_files <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID, lsi14 = W1chea1HS),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, lsi15 = W2chea1HS),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID, lsi17 = W4Hea2YP),
-  S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>%
+  S6 = ns_data[["S6youngperson"]] %>%
     select(NSID, lsi19 = W6HealthYP),
-  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
+  S7 = ns_data[["S7youngperson"]] %>%
     select(NSID, lsi20 = W7HealthYP),
-  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
+  S8 = ns_data[["S8maininterview"]] %>%
     select(NSID, lsi25 = W8LOIL),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, lsi32 = W9LOIL)
 )
 

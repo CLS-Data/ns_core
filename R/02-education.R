@@ -1,17 +1,17 @@
 # Current Aim Education Own --------------------------------------------------------------------
 # Load education variables from relevant sweeps
 educaim_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID, educaim17_raw = w4saim),
-  S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>%
+  S6 = ns_data[["S6youngperson"]] %>%
     select(NSID, educaim19_raw = W6Saim),
-  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
+  S7 = ns_data[["S7youngperson"]] %>%
     select(NSID, educaim20_raw = W7SAim),
-  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
+  S8 = ns_data[["S8maininterview"]] %>%
     select(NSID, W8ACTIVITY05, starts_with("W8ACQUC"), starts_with("W8VCQUC")),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, W9ECONACT2, starts_with("W9ACQUC"), starts_with("W9VCQUC"))
 )
 
@@ -184,17 +184,17 @@ educaim_all <- educaim_all %>%
 # Education Own --------------------------------------------------------------------
 # Load education variables from relevant sweeps
 educ_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID),
-  S8dv = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>%
+  S8dv = ns_data[["S8derivedvariable"]] %>%
     select(NSID, W8DHANVQH),
-  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
+  S8 = ns_data[["S8maininterview"]] %>%
     select(NSID, starts_with("W8VCQU")),
-  S9dv = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+  S9dv = ns_data[["S9derivedvariable"]] %>%
     select(NSID, W9DANVQH, W9DVNVQH),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, starts_with("W9ACQU"), starts_with("W9VCQU"))
 )
 
@@ -410,11 +410,11 @@ educ_all <- educ_all %>%
 # Education Parents --------------------------------------------------------------------
 # Load and rename relevant variables from each sweep
 parent_edu_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1familybackground)) %>%
+  S1 = ns_data[["S1familybackground"]] %>%
     select(NSID, educma_S1 = W1hiqualmum, educpa_S1 = W1hiqualdad),
-  S2 = read_dta(file.path(data_path, sweeps$S2familybackground)) %>%
+  S2 = ns_data[["S2familybackground"]] %>%
     select(NSID, educma_S2 = W2hiqualmum, educpa_S2 = W2hiqualdad),
-  S4 = read_dta(file.path(data_path, sweeps$S4familybackground)) %>%
+  S4 = ns_data[["S4familybackground"]] %>%
     select(NSID, educma_S4 = w4hiqualmum, educpa_S4 = w4hiqualdad)
 )
 

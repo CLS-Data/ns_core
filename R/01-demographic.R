@@ -2,23 +2,23 @@
 
 # Load sex variables from relevant sweeps
 sex_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID, sex_S1 = W1sexYP),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, sex_S2 = W2SexYP),
-  S3 = read_dta(file.path(data_path, sweeps$S3youngperson)) %>%
+  S3 = ns_data[["S3youngperson"]] %>%
     select(NSID, sex_S3 = W3sexYP),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID, W4Boost, sex_S4 = W4SexYP),
-  S5 = read_dta(file.path(data_path, sweeps$S5youngperson)) %>%
+  S5 = ns_data[["S5youngperson"]] %>%
     select(NSID, sex_S5 = W5SexYP),
-  S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>%
+  S6 = ns_data[["S6youngperson"]] %>%
     select(NSID, sex_S6 = W6Sex),
-  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
+  S7 = ns_data[["S7youngperson"]] %>%
     select(NSID, sex_S7 = W7Sex),
-  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
+  S8 = ns_data[["S8maininterview"]] %>%
     select(NSID, sex_S8 = W8CMSEX),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, sex_S9 = W9DSEX)
 )
 
@@ -100,15 +100,15 @@ sex_all <- sex_all %>%
 # Ethnicity --------------------------------------------------------------------
 # Load ethnicity variables from relevant sweeps
 ethnicity_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID, eth_S1 = W1ethnic2YP),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, eth_S2 = W2ethnicYP),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID, eth_S4 = w4ethnic2YP),
-  S8 = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>%
+  S8 = ns_data[["S8derivedvariable"]] %>%
     select(NSID, eth_S8 = W8DETHN15),
-  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+  S9 = ns_data[["S9derivedvariable"]] %>%
     select(NSID, eth_S9 = W9DETHN15)
 )
 
@@ -209,13 +209,13 @@ eth_all <- eth_all %>%
 # Language --------------------------------------------------------------------
 # Load relevant language variables
 lang_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID, lang_S1 = W1englangYP),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, lang_S2 = W2EnglangYP),
-  S3 = read_dta(file.path(data_path, sweeps$S3familybackground)) %>%
+  S3 = ns_data[["S3familybackground"]] %>%
     select(NSID, lang_S3 = W3englangHH),
-  S4 = read_dta(file.path(data_path, sweeps$S4familybackground)) %>%
+  S4 = ns_data[["S4familybackground"]] %>%
     select(NSID, lang_S4 = W4EngLangHH)
 )
 
@@ -273,17 +273,17 @@ lang_all <- lang_all %>%
 # Sexual Orientation --------------------------------------------------------------------
 # Load sexuality variables
 sexuality_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID),
-  S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>%
+  S6 = ns_data[["S6youngperson"]] %>%
     select(NSID, sori19 = W6SexualityYP),
-  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
+  S7 = ns_data[["S7youngperson"]] %>%
     select(NSID, sori20 = W7SexualityYP),
-  S8 = read_dta(file.path(data_path, sweeps$S8selfcompletion)) %>%
+  S8 = ns_data[["S8selfcompletion"]] %>%
     select(NSID, sori25 = W8SEXUALITY),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, sori32 = W9SORI)
 )
 
@@ -361,15 +361,15 @@ sexuality_all <- sexuality_all %>%
 # Partnership --------------------------------------------------------------------
 # Load partnership variables from relevant sweeps
 partnr_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID),
-  S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>%
+  S6 = ns_data[["S6youngperson"]] %>%
     select(NSID, partnr19 = W6MarStatYP),
-  S8 = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>%
+  S8 = ns_data[["S8derivedvariable"]] %>%
     select(NSID, partnradu25 = W8DMARSTAT),
-  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+  S9 = ns_data[["S9derivedvariable"]] %>%
     select(NSID, partnradu32 = W9DMARSTAT)
 )
 
@@ -476,19 +476,19 @@ partnr_all <- partnr_all %>%
 # Region --------------------------------------------------------------------
 # Load region variables from relevant sweeps
 region_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID),
-  S2 = read_dta(file.path(data_path, sweeps$S2familybackground)) %>%
+  S2 = ns_data[["S2familybackground"]] %>%
     select(NSID, regub15 = urbind, regov15 = gor),
-  S3 = read_dta(file.path(data_path, sweeps$S3familybackground)) %>%
+  S3 = ns_data[["S3familybackground"]] %>%
     select(NSID, regub16 = urbind, regov16 = gor),
-  S8 = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>%
+  S8 = ns_data[["S8derivedvariable"]] %>%
     select(NSID, regor25 = W8DGOR),
-  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+  S9 = ns_data[["S9derivedvariable"]] %>%
     select(NSID, regor32 = W9DRGN),
-  S9_2 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9_2 = ns_data[["S9maininterview"]] %>%
     select(NSID, regint32 = W9NATIONRES)
 )
 

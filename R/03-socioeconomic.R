@@ -1,17 +1,17 @@
 # Economic Activity --------------------------------------------------------------------
 ecoact_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>% select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>% select(NSID),
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID, ecoact17 = W4empsYP),
-  S5 = read_dta(file.path(data_path, sweeps$S5youngperson)) %>%
+  S5 = ns_data[["S5youngperson"]] %>%
     select(NSID, ecoact18 = W5mainactYP),
-  S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>%
+  S6 = ns_data[["S6youngperson"]] %>%
     select(NSID, ecoact19 = W6TCurrentAct),
-  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
+  S7 = ns_data[["S7youngperson"]] %>%
     select(NSID, ecoact20 = W7TCurrentAct),
-  S8 = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>%
+  S8 = ns_data[["S8derivedvariable"]] %>%
     select(NSID, ecoactadu25 = W8DACTIVITYC),
-  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+  S9 = ns_data[["S9derivedvariable"]] %>%
     select(NSID, ecoactadu32 = W9DACTIVITYC)
 )
 # Merge by NSID
@@ -163,13 +163,13 @@ ecoact_all <- ecoact_all %>%
 # Economic Activity Parents --------------------------------------------------------------------
 # Load & select parental employment variables for Sweeps 1–4
 ecoactDT_parents_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1familybackground)) %>%
+  S1 = ns_data[["S1familybackground"]] %>%
     select(NSID, ecoactdtma14 = W1empsmum, ecoactdtpa14 = W1empsdad),
-  S2 = read_dta(file.path(data_path, sweeps$S2familybackground)) %>%
+  S2 = ns_data[["S2familybackground"]] %>%
     select(NSID, ecoactdtma15 = W2empsmum, ecoactdtpa15 = W2empsdad),
-  S3 = read_dta(file.path(data_path, sweeps$S3familybackground)) %>%
+  S3 = ns_data[["S3familybackground"]] %>%
     select(NSID, ecoactdtma16 = W3empsmum, ecoactdtpa16 = W3empsdad),
-  S4 = read_dta(file.path(data_path, sweeps$S4familybackground)) %>%
+  S4 = ns_data[["S4familybackground"]] %>%
     select(NSID, ecoactdtma17 = w4empsmum, ecoactdtpa17 = w4empsdad)
 )
 
@@ -237,18 +237,18 @@ ecoactDT_parents_all <- ecoactDT_parents_all %>%
 # NS-SEC Own --------------------------------------------------------------------
 # Load NS-SEC variables from relevant sweeps
 nssec_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>% select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>% select(NSID),
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID, nssec17 = W4nsseccatYP),
-  S5 = read_dta(file.path(data_path, sweeps$S5youngperson)) %>%
+  S5 = ns_data[["S5youngperson"]] %>%
     select(NSID, nssec18 = W5nsseccatYP),
-  S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>%
+  S6 = ns_data[["S6youngperson"]] %>%
     select(NSID, nssec19 = w6nsseccatYP),
-  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
+  S7 = ns_data[["S7youngperson"]] %>%
     select(NSID, nssec20 = W7NSSECCat),
-  S8 = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>%
+  S8 = ns_data[["S8derivedvariable"]] %>%
     select(NSID, nssec25 = W8DNSSEC17, ecoactadu25 = W8DACTIVITYC),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, nssec32 = W9NSSEC)
 )
 
@@ -367,15 +367,15 @@ nssec_all <- nssec_all %>%
 # NS-SEC Parents --------------------------------------------------------------------
 # Load and select parental NS-SEC variables from Sweeps 1–5
 nssec_parents_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1familybackground)) %>%
+  S1 = ns_data[["S1familybackground"]] %>%
     select(NSID, nssecma14 = W1nsseccatmum, nssecpa14 = W1nsseccatdad),
-  S2 = read_dta(file.path(data_path, sweeps$S2familybackground)) %>%
+  S2 = ns_data[["S2familybackground"]] %>%
     select(NSID, nssecma15 = W2nsseccatmum, nssecpa15 = W2nsseccatdad),
-  S3 = read_dta(file.path(data_path, sweeps$S3familybackground)) %>%
+  S3 = ns_data[["S3familybackground"]] %>%
     select(NSID, nssecma16 = W3cnsseccatmum, nssecpa16 = W3cnsseccatdad),
-  S4 = read_dta(file.path(data_path, sweeps$S4familybackground)) %>%
+  S4 = ns_data[["S4familybackground"]] %>%
     select(NSID, nssecma17 = w4cnsseccatmum, nssecpa17 = w4cnsseccatdad),
-  S5 = read_dta(file.path(data_path, sweeps$S5familybackground)) %>%
+  S5 = ns_data[["S5familybackground"]] %>%
     select(NSID, nssecma18 = w5Cnsseccatmum, nssecpa18 = w5Cnsseccatdad)
 )
 
@@ -478,23 +478,23 @@ nssec_parents_all <- nssec_parents_all %>%
 # House Ownership --------------------------------------------------------------------
 # Load and select house ownership variables from relevant sweeps
 housing_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1familybackground)) %>%
+  S1 = ns_data[["S1familybackground"]] %>%
     select(NSID, hown14 = W1hous12HH),
-  S2 = read_dta(file.path(data_path, sweeps$S2familybackground)) %>%
+  S2 = ns_data[["S2familybackground"]] %>%
     select(NSID, hown15 = W2Hous12HH),
-  S3 = read_dta(file.path(data_path, sweeps$S3familybackground)) %>%
+  S3 = ns_data[["S3familybackground"]] %>%
     select(NSID, hown16 = W3hous12HH),
-  S4 = read_dta(file.path(data_path, sweeps$S4familybackground)) %>%
+  S4 = ns_data[["S4familybackground"]] %>%
     select(NSID, hown17 = W4Hous12HH),
-  S5 = read_dta(file.path(data_path, sweeps$S5familybackground)) %>%
+  S5 = ns_data[["S5familybackground"]] %>%
     select(NSID, W5Hous12HH, W5Hous12BHH, W5Hous12CHH),
-  S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>%
+  S6 = ns_data[["S6youngperson"]] %>%
     select(NSID, W6Hous12YP, W6Hous12bYP, W6Hous12cYP),
-  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
+  S7 = ns_data[["S7youngperson"]] %>%
     select(NSID, W7Hous12YP, W7Hous12bYP, W7Hous12cYP),
-  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
+  S8 = ns_data[["S8maininterview"]] %>%
     select(NSID, hown25 = W8TENURE),
-  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+  S9 = ns_data[["S9derivedvariable"]] %>%
     select(NSID, hown32 = W9DTENURE)
 )
 
@@ -770,11 +770,11 @@ hown_all <- hown_all %>%
 # Income Own + Partner --------------------------------------------------------------------
 # Load and select income variables from relevant sweeps
 income_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>% select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>% select(NSID),
-  S8 = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>%
+  S1 = ns_data[["S1youngperson"]] %>% select(NSID),
+  S4 = ns_data[["S4youngperson"]] %>% select(NSID),
+  S8 = ns_data[["S8derivedvariable"]] %>%
     select(NSID, inc25 = W8DINCB),
-  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+  S9 = ns_data[["S9derivedvariable"]] %>%
     select(NSID, inc32 = W9DINCB)
 )
 
@@ -850,13 +850,13 @@ income_all <- income_all %>%
 # Income Parents --------------------------------------------------------------------
 # Load and select household income variables
 hh_income_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1familybackground)) %>%
+  S1 = ns_data[["S1familybackground"]] %>%
     select(NSID, incwhh14 = W1GrsswkHH),
-  S2 = read_dta(file.path(data_path, sweeps$S2familybackground)) %>%
+  S2 = ns_data[["S2familybackground"]] %>%
     select(NSID, incwhh15 = W2GrsswkHH),
-  S3 = read_dta(file.path(data_path, sweeps$S3familybackground)) %>%
+  S3 = ns_data[["S3familybackground"]] %>%
     select(NSID, incwhh16 = W3incestw),
-  S4 = read_dta(file.path(data_path, sweeps$S4familybackground)) %>%
+  S4 = ns_data[["S4familybackground"]] %>%
     select(NSID, incwhh17 = w4IncEstW)
 )
 
@@ -1048,13 +1048,13 @@ hh_income_all <- hh_income_all %>%
 # IMD --------------------------------------------------------------------
 # Load IMD variables from relevant sweeps
 imd_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>% select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>% select(NSID),
-  S2 = read_dta(file.path(data_path, sweeps$S2familybackground)) %>%
+  S1 = ns_data[["S1youngperson"]] %>% select(NSID),
+  S4 = ns_data[["S4youngperson"]] %>% select(NSID),
+  S2 = ns_data[["S2familybackground"]] %>%
     select(NSID, imd15 = IMDRSCORE),
-  S3 = read_dta(file.path(data_path, sweeps$S3familybackground)) %>%
+  S3 = ns_data[["S3familybackground"]] %>%
     select(NSID, imd16 = IMDRSCORE),
-  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+  S9 = ns_data[["S9derivedvariable"]] %>%
     select(NSID, imd32 = W9DIMDD)
 )
 
