@@ -171,41 +171,55 @@ alc_vars <- list(
 alc_all <- reduce(alc_vars, full_join, by = "NSID")
 
 # First Time Had Alcohol
-alc_all <- alc_all %>%
-  rowwise() %>%
+# Code review / MD (2025-12-05): Vectorised rewrite of the original rowwise() code to improve speed.
+# This reproduces the original behaviour, including the current treatment of cases
+# with all alcohol indicators missing as "never had alcohol" (99).
+# Substantive logic (especially the 'never had alcohol' definition) to be revisited
+# at a later debugging/clean-up stage.
+alc_all <- alc_all |>
   mutate(
-    ever_flags = list(c(
-      ifelse(alcever_S1 == 1 & alcmon_S1 == 1, 14, NA),
-      ifelse(alcever_S2 == 1, 15, NA),
-      ifelse(alcever_S3 == 1, 16, NA),
-      ifelse(alcever_S4 == 1, 17, NA),
-      ifelse(alcever_S6 == 1, 19, NA),
-      ifelse(alcever_S7 == 1, 20, NA),
-      ifelse(audita25 > 1, 25, NA),
-      ifelse(audita32 > 1, 32, NA)
-    )),
+    ever14 = if_else(alcever_S1 == 1 & alcmon_S1 == 1, 14, NA_real_),
+    ever15 = if_else(alcever_S2 == 1, 15, NA_real_),
+    ever16 = if_else(alcever_S3 == 1, 16, NA_real_),
+    ever17 = if_else(alcever_S4 == 1, 17, NA_real_),
+    ever19 = if_else(alcever_S6 == 1, 19, NA_real_),
+    ever20 = if_else(alcever_S7 == 1, 20, NA_real_),
+    ever25 = if_else(audita25 > 1, 25, NA_real_),
+    ever32 = if_else(audita32 > 1, 32, NA_real_),
+
+    first_age_raw = pmin(
+      ever14, ever15, ever16, ever17,
+      ever19, ever20, ever25, ever32,
+      na.rm = TRUE
+    ),
+    first_age_raw = if_else(
+      is.infinite(first_age_raw),
+      NA_real_,
+      first_age_raw
+    ),
+
+    # This reproduces `all(..., na.rm = TRUE)` but vectorised
+    never_alc = rowSums(
+      cbind(
+        alcever_S1 == 2,
+        alcever_S2 == 2,
+        alcever_S3 == 2,
+        alcever_S4 == 2,
+        alcever_S6 == 2,
+        alcever_S7 == 2,
+        audita25 == 1,
+        audita32 == 1
+      ) == FALSE,
+      na.rm = TRUE
+    ) == 0,
+
     alcfst = case_when(
-      any(ever_flags %in% 14:32, na.rm = TRUE) ~ min(
-        unlist(ever_flags),
-        na.rm = TRUE
-      ),
-      all(
-        c(
-          alcever_S1,
-          alcever_S2,
-          alcever_S3,
-          alcever_S4,
-          alcever_S6,
-          alcever_S7
-        ) ==
-          2 &
-          c(audita25, audita32) == 1,
-        na.rm = TRUE
-      ) ~ 99,
+      !is.na(first_age_raw) ~ first_age_raw,
+      never_alc ~ 99,
       TRUE ~ -8
     )
-  ) %>%
-  ungroup()
+  ) |>
+  select(-starts_with("ever"), -first_age_raw, -never_alc)
 
 # function - Frequency Recode Across Sweeps
 recode_freq <- function(x, sweep, ever) {
@@ -550,18 +564,41 @@ drug_all <- drug_all %>%
   )
 
 # Derive oth7–9 and now_oth7–9 from multiple variables
-drug_all <- drug_all %>%
-  rowwise() %>%
+# Code review / MD (2025-12-05): Vectorised rewrite of the original rowwise() code to improve speed.
+# This reproduces the original behaviour.
+# Substantive logic to be revisited at a later debugging/clean-up stage.
+row_max_df <- function(df) {
+  do.call(pmax, c(df, list(na.rm = TRUE)))
+}
+
+drug_all <- drug_all |>
   mutate(
-    othevr25 = max(c_across(starts_with("othevr25"))[2:9], na.rm = TRUE),
-    othevr32 = max(c_across(starts_with("othevr32"))[2:10], na.rm = TRUE),
-    now_oth20 = max(c_across(starts_with("now_oth20"))[2:9], na.rm = TRUE),
-    now_oth25 = max(c_across(starts_with("now_oth25"))[2:9], na.rm = TRUE),
-    now_oth32 = max(c_across(starts_with("now_oth32"))[2:10], na.rm = TRUE),
-    yr_oth25 = max(c_across(starts_with("yr_oth25"))[2:9], na.rm = TRUE),
-    yr_oth32 = max(c_across(starts_with("yr_oth32"))[2:10], na.rm = TRUE)
-  ) %>%
-  ungroup()
+    # 25-sweep: use columns 2:9 (8 "other" vars)
+    othevr25 = row_max_df(
+      pick(starts_with("othevr25"))[2:9]
+    ),
+    now_oth20 = row_max_df(
+      pick(starts_with("now_oth20"))[2:9]
+    ),
+    now_oth25 = row_max_df(
+      pick(starts_with("now_oth25"))[2:9]
+    ),
+    yr_oth25 = row_max_df(
+      pick(starts_with("yr_oth25"))[2:9]
+    ),
+
+    # 32-sweep: use columns 2:10 (9 "other" vars)
+    othevr32 = row_max_df(
+      pick(starts_with("othevr32"))[2:10]
+    ),
+    now_oth32 = row_max_df(
+      pick(starts_with("now_oth32"))[2:10]
+    ),
+    yr_oth32 = row_max_df(
+      pick(starts_with("yr_oth32"))[2:10]
+    )
+  )
+
 
 # Derive: Ever used
 drug_all <- drug_all %>%
