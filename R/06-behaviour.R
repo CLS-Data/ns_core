@@ -1,17 +1,17 @@
 # Smoke --------------------------------------------------------------------
 # Load smoking data from relevant sweeps
 smoking_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID, smknw14 = W1cignowYP, smk14 = W1cigfreqYP),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, smknw15 = W2cignowYP, smk15 = W2cigfreqYP),
-  S3 = read_dta(file.path(data_path, sweeps$S3youngperson)) %>%
+  S3 = ns_data[["S3youngperson"]] %>%
     select(NSID, smknw16 = W3cignowYP, smk16 = W3cigfreqYP),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID),
-  S8 = read_dta(file.path(data_path, sweeps$S8selfcompletion)) %>%
+  S8 = ns_data[["S8selfcompletion"]] %>%
     select(NSID, smk25 = W8SMOKING),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, smk32 = W9SMOKING)
 )
 
@@ -144,26 +144,26 @@ smoking_all <- smoking_all %>%
 # Alcohol --------------------------------------------------------------------
 # Load and Select Variables
 alc_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(
       NSID,
       alcever_S1 = W1alceverYP,
       alcmon_S1 = W1alcmonYP,
       alcfreq_S1 = W1alcfreqYP
     ),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, alcever_S2 = W2alceverYP, alcfreq_S2 = W2alcfreqYP),
-  S3 = read_dta(file.path(data_path, sweeps$S3youngperson)) %>%
+  S3 = ns_data[["S3youngperson"]] %>%
     select(NSID, alcever_S3 = W3alceverYP, alcfreq_S3 = W3alcfreqYP),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID, alcever_S4 = W4AlcEverYP, alcfreq_S4 = W4AlcFreqYP),
-  S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>%
+  S6 = ns_data[["S6youngperson"]] %>%
     select(NSID, alcever_S6 = W6AlcEverYP, alcfreq_S6 = W6AlcFreqYP),
-  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
+  S7 = ns_data[["S7youngperson"]] %>%
     select(NSID, alcever_S7 = W7AlcEverYP, alcfreq_S7 = W7AlcFreqYP),
-  S8 = read_dta(file.path(data_path, sweeps$S8selfcompletion)) %>%
+  S8 = ns_data[["S8selfcompletion"]] %>%
     select(NSID, audita25 = W8AUDIT1, auditb25 = W8AUDIT2, auditc25 = W8AUDIT6),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, audita32 = W9AUDIT1, auditb32 = W9AUDIT2, auditc32 = W9AUDIT3)
 )
 
@@ -171,41 +171,55 @@ alc_vars <- list(
 alc_all <- reduce(alc_vars, full_join, by = "NSID")
 
 # First Time Had Alcohol
-alc_all <- alc_all %>%
-  rowwise() %>%
+# Code review / MD (2025-12-05): Vectorised rewrite of the original rowwise() code to improve speed.
+# This reproduces the original behaviour, including the current treatment of cases
+# with all alcohol indicators missing as "never had alcohol" (99).
+# Substantive logic (especially the 'never had alcohol' definition) to be revisited
+# at a later debugging/clean-up stage.
+alc_all <- alc_all |>
   mutate(
-    ever_flags = list(c(
-      ifelse(alcever_S1 == 1 & alcmon_S1 == 1, 14, NA),
-      ifelse(alcever_S2 == 1, 15, NA),
-      ifelse(alcever_S3 == 1, 16, NA),
-      ifelse(alcever_S4 == 1, 17, NA),
-      ifelse(alcever_S6 == 1, 19, NA),
-      ifelse(alcever_S7 == 1, 20, NA),
-      ifelse(audita25 > 1, 25, NA),
-      ifelse(audita32 > 1, 32, NA)
-    )),
+    ever14 = if_else(alcever_S1 == 1 & alcmon_S1 == 1, 14, NA_real_),
+    ever15 = if_else(alcever_S2 == 1, 15, NA_real_),
+    ever16 = if_else(alcever_S3 == 1, 16, NA_real_),
+    ever17 = if_else(alcever_S4 == 1, 17, NA_real_),
+    ever19 = if_else(alcever_S6 == 1, 19, NA_real_),
+    ever20 = if_else(alcever_S7 == 1, 20, NA_real_),
+    ever25 = if_else(audita25 > 1, 25, NA_real_),
+    ever32 = if_else(audita32 > 1, 32, NA_real_),
+
+    first_age_raw = pmin(
+      ever14, ever15, ever16, ever17,
+      ever19, ever20, ever25, ever32,
+      na.rm = TRUE
+    ),
+    first_age_raw = if_else(
+      is.infinite(first_age_raw),
+      NA_real_,
+      first_age_raw
+    ),
+
+    # This reproduces `all(..., na.rm = TRUE)` but vectorised
+    never_alc = rowSums(
+      cbind(
+        alcever_S1 == 2,
+        alcever_S2 == 2,
+        alcever_S3 == 2,
+        alcever_S4 == 2,
+        alcever_S6 == 2,
+        alcever_S7 == 2,
+        audita25 == 1,
+        audita32 == 1
+      ) == FALSE,
+      na.rm = TRUE
+    ) == 0,
+
     alcfst = case_when(
-      any(ever_flags %in% 14:32, na.rm = TRUE) ~ min(
-        unlist(ever_flags),
-        na.rm = TRUE
-      ),
-      all(
-        c(
-          alcever_S1,
-          alcever_S2,
-          alcever_S3,
-          alcever_S4,
-          alcever_S6,
-          alcever_S7
-        ) ==
-          2 &
-          c(audita25, audita32) == 1,
-        na.rm = TRUE
-      ) ~ 99,
+      !is.na(first_age_raw) ~ first_age_raw,
+      never_alc ~ 99,
       TRUE ~ -8
     )
-  ) %>%
-  ungroup()
+  ) |>
+  select(-starts_with("ever"), -first_age_raw, -never_alc)
 
 # function - Frequency Recode Across Sweeps
 recode_freq <- function(x, sweep, ever) {
@@ -424,15 +438,15 @@ alc_all_clean <- alc_all %>%
 # Drug Use --------------------------------------------------------------------
 # Load drug use data from relevant sweeps
 drug_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID, canevr14 = W1canntryYP),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, canevr15 = W2canntryYP),
-  S3 = read_dta(file.path(data_path, sweeps$S3youngperson)) %>%
+  S3 = ns_data[["S3youngperson"]] %>%
     select(NSID, canevr16 = W3canntryYP),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID, canevr17 = W4CannTryYP),
-  S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>%
+  S6 = ns_data[["S6youngperson"]] %>%
     select(
       NSID,
       canevr19 = W6DrugYP0a,
@@ -440,7 +454,7 @@ drug_vars <- list(
       now_cann19 = W6DrugOftenYP0a,
       now_oth19 = W6DrugOftenYP0b
     ),
-  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
+  S7 = ns_data[["S7youngperson"]] %>%
     select(
       NSID,
       canevr20 = W7DrugYP1YP0a,
@@ -448,7 +462,7 @@ drug_vars <- list(
       now_cann20 = W7DrugOftenYP0a,
       now_oth20 = starts_with("W7DrugOftenYP0")
     ),
-  S8 = read_dta(file.path(data_path, sweeps$S8selfcompletion)) %>%
+  S8 = ns_data[["S8selfcompletion"]] %>%
     select(
       NSID,
       canevr25 = W8DRUGYP10A,
@@ -458,7 +472,7 @@ drug_vars <- list(
       now_cann25 = W8DRUGOFTEN0A,
       now_oth25 = starts_with("W8DRUGOFTEN0")
     ),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(
       NSID,
       canevr32 = W9DRUGYP10A,
@@ -550,18 +564,41 @@ drug_all <- drug_all %>%
   )
 
 # Derive oth7–9 and now_oth7–9 from multiple variables
-drug_all <- drug_all %>%
-  rowwise() %>%
+# Code review / MD (2025-12-05): Vectorised rewrite of the original rowwise() code to improve speed.
+# This reproduces the original behaviour.
+# Substantive logic to be revisited at a later debugging/clean-up stage.
+row_max_df <- function(df) {
+  do.call(pmax, c(df, list(na.rm = TRUE)))
+}
+
+drug_all <- drug_all |>
   mutate(
-    othevr25 = max(c_across(starts_with("othevr25"))[2:9], na.rm = TRUE),
-    othevr32 = max(c_across(starts_with("othevr32"))[2:10], na.rm = TRUE),
-    now_oth20 = max(c_across(starts_with("now_oth20"))[2:9], na.rm = TRUE),
-    now_oth25 = max(c_across(starts_with("now_oth25"))[2:9], na.rm = TRUE),
-    now_oth32 = max(c_across(starts_with("now_oth32"))[2:10], na.rm = TRUE),
-    yr_oth25 = max(c_across(starts_with("yr_oth25"))[2:9], na.rm = TRUE),
-    yr_oth32 = max(c_across(starts_with("yr_oth32"))[2:10], na.rm = TRUE)
-  ) %>%
-  ungroup()
+    # 25-sweep: use columns 2:9 (8 "other" vars)
+    othevr25 = row_max_df(
+      pick(starts_with("othevr25"))[2:9]
+    ),
+    now_oth20 = row_max_df(
+      pick(starts_with("now_oth20"))[2:9]
+    ),
+    now_oth25 = row_max_df(
+      pick(starts_with("now_oth25"))[2:9]
+    ),
+    yr_oth25 = row_max_df(
+      pick(starts_with("yr_oth25"))[2:9]
+    ),
+
+    # 32-sweep: use columns 2:10 (9 "other" vars)
+    othevr32 = row_max_df(
+      pick(starts_with("othevr32"))[2:10]
+    ),
+    now_oth32 = row_max_df(
+      pick(starts_with("now_oth32"))[2:10]
+    ),
+    yr_oth32 = row_max_df(
+      pick(starts_with("yr_oth32"))[2:10]
+    )
+  )
+
 
 # Derive: Ever used
 drug_all <- drug_all %>%
@@ -724,19 +761,19 @@ drug_final <- drug_all %>%
 # Exercise --------------------------------------------------------------------
 # Load relevant sweep files and select variables
 exercise_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID, spt14 = W1sportYP),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, spt15 = W2sportYP),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID, spt17 = W4SportYP),
-  S6 = read_dta(file.path(data_path, sweeps$S6youngperson)) %>%
+  S6 = ns_data[["S6youngperson"]] %>%
     select(NSID, spt19 = W6SportYP),
-  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
+  S7 = ns_data[["S7youngperson"]] %>%
     select(NSID, spt20 = W7SportYP),
-  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
+  S8 = ns_data[["S8maininterview"]] %>%
     select(NSID, spt25 = W8EXERCISE),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, spt32 = W9EXERCISEH)
 )
 
@@ -810,13 +847,13 @@ spt_all <- spt_all %>%
 # Absence --------------------------------------------------------------------
 # Load relevant sweep files and select variables
 absence_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID, abs1m14 = W1abs1myMP),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, abs1m15 = W2abs1myMP),
-  S3 = read_dta(file.path(data_path, sweeps$S3youngperson)) %>%
+  S3 = ns_data[["S3youngperson"]] %>%
     select(NSID, abs1m16 = W3abs1myMP),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID)
 )
 
@@ -865,13 +902,13 @@ absence_all <- absence_all %>%
 # Suspended/Expelled --------------------------------------------------------------------
 # Load suspension and expulsion variables from each sweep
 suspend_expel_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID, susp14 = W1suspendMP, expl14 = W1expelMP),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, susp15 = W2SuspendMP, expl15 = W2ExpelMP),
-  S3 = read_dta(file.path(data_path, sweeps$S3youngperson)) %>%
+  S3 = ns_data[["S3youngperson"]] %>%
     select(NSID, susp16 = W3suspendMP, expl16 = W3expelMP),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID, expl17 = W4Expel1YP, susp17 = W4Expel2YP)
 )
 
@@ -925,13 +962,13 @@ suspend_expel_all <- suspend_expel_all %>%
 # Truancy --------------------------------------------------------------------
 # Load original variables from S1–S4
 truancy_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID, trua14_ever = W1truantYP, trua14_type = W1truant1YP),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, trua15_ever = W2truantYP, trua15_type = W2truant1YP),
-  S3 = read_dta(file.path(data_path, sweeps$S3youngperson)) %>%
+  S3 = ns_data[["S3youngperson"]] %>%
     select(NSID, trua16_ever = W3truantYP, trua16_type = W3truant1YP),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID, trua17_raw = W4TruantYP)
 )
 
@@ -1005,15 +1042,15 @@ truancy_all <- truancy_all %>%
 # Police Contact --------------------------------------------------------------------
 # Load data for police contact
 police_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID, pol14 = W1Police1MP, polcnt14 = W1police2MP),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, pol15 = W2police1MP, polcnt15 = W2Police2MP),
-  S3 = read_dta(file.path(data_path, sweeps$S3youngperson)) %>%
+  S3 = ns_data[["S3youngperson"]] %>%
     select(NSID, pol16 = W3police1MP, polcnt16 = W3police2MP),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID, pol17 = W4Police1MP, polcnt17 = W4Police2MP),
-  S8 = read_dta(file.path(data_path, sweeps$S8selfcompletion)) %>%
+  S8 = ns_data[["S8selfcompletion"]] %>%
     select(
       NSID,
       polwrn25 = W8CJSCONTACT0A,
@@ -1022,7 +1059,7 @@ police_vars <- list(
       polglt25 = W8CJSCONTACT0D,
       polpnd25 = W8CJSCONTACT0E
     ),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(
       NSID,
       polwrn32 = W9CJSCONTACT0A,
@@ -1212,13 +1249,13 @@ police_all <- police_all %>%
 # Bully --------------------------------------------------------------------
 # Load and harmonise bullying variables across sweeps 1–4, 7–8
 bully_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID, bul14 = W1bulrc),
-  S2 = read_dta(file.path(data_path, sweeps$S2youngperson)) %>%
+  S2 = ns_data[["S2youngperson"]] %>%
     select(NSID, bul15 = W2bulrc),
-  S3 = read_dta(file.path(data_path, sweeps$S3youngperson)) %>%
+  S3 = ns_data[["S3youngperson"]] %>%
     select(NSID, bul16 = W3bulrc),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(
       NSID,
       bul17_1 = W4V1perSYP,
@@ -1228,9 +1265,9 @@ bully_vars <- list(
       bul17_5 = W4MadegiveYP,
       bul17_6 = W4NamesYP
     ),
-  S7 = read_dta(file.path(data_path, sweeps$S7youngperson)) %>%
+  S7 = ns_data[["S7youngperson"]] %>%
     select(NSID, starts_with("W7BullyTypeYP0")),
-  S8 = read_dta(file.path(data_path, sweeps$S8selfcompletion)) %>%
+  S8 = ns_data[["S8selfcompletion"]] %>%
     select(NSID, starts_with("W8BULLYTYPE0"))
 )
 

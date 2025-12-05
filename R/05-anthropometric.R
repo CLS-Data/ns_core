@@ -1,13 +1,13 @@
 # Weight --------------------------------------------------------------------
 # Load weight variables from each sweep
 wt_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S12history)) %>%
+  S1 = ns_data[["S12history"]] %>%
     select(NSID, wt0 = bwtkg),
-  S4 = read_dta(file.path(data_path, sweeps$S4history)) %>%
+  S4 = ns_data[["S4history"]] %>%
     select(NSID, wt0 = W4bwtkgYP),
-  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
+  S8 = ns_data[["S8maininterview"]] %>%
     select(NSID, wt25 = W8WEIGHT),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, wt32 = W9WEIGHT)
 )
 
@@ -65,13 +65,13 @@ wt_all <- wt_all %>%
 # Height --------------------------------------------------------------------
 # Load height data from sweeps 8 and 9
 ht_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID),
-  S8 = read_dta(file.path(data_path, sweeps$S8maininterview)) %>%
+  S8 = ns_data[["S8maininterview"]] %>%
     select(NSID, ht25 = W8HEIGHT),
-  S9 = read_dta(file.path(data_path, sweeps$S9maininterview)) %>%
+  S9 = ns_data[["S9maininterview"]] %>%
     select(NSID, ht32 = W9HEIGHT)
 )
 
@@ -122,13 +122,13 @@ ht_all <- ht_all %>%
 # BMI --------------------------------------------------------------------
 # Load BMI data from relevant sweeps
 bmi_vars <- list(
-  S1 = read_dta(file.path(data_path, sweeps$S1youngperson)) %>%
+  S1 = ns_data[["S1youngperson"]] %>%
     select(NSID),
-  S4 = read_dta(file.path(data_path, sweeps$S4youngperson)) %>%
+  S4 = ns_data[["S4youngperson"]] %>%
     select(NSID),
-  S8 = read_dta(file.path(data_path, sweeps$S8derivedvariable)) %>%
+  S8 = ns_data[["S8derivedvariable"]] %>%
     select(NSID, bmi25 = W8DBMI),
-  S9 = read_dta(file.path(data_path, sweeps$S9derivedvariable)) %>%
+  S9 = ns_data[["S9derivedvariable"]] %>%
     select(NSID, bmi32 = W9DBMI)
 )
 
