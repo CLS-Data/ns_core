@@ -40,3 +40,149 @@ sweeps <- list(
 
 # Load all datasets
 ns_data <- map(sweeps, ~ read_dta(file.path(data_path, .x)))
+
+# Missing value labels (re-used across all variables & scripts)
+common_missing_labels <- c(
+  "Item not applicable" = -1L,
+  "Script error/information lost" = -2L,
+  "Not asked at the fieldwork stage/did not participate at specific wave/was not surveyed" = -3L,
+  "Data not available" = -5L,
+  "Prefer not to say" = -7L,
+  "Don’t know/insufficient information" = -8L,
+  "Refusal" = -9L
+)
+
+# Re-coding via look up tables
+val_table <- function(x) {
+  labs <- labelled::val_labels(x)
+
+  tibble(
+    old_value = unname(labs),
+    old_label = names(labs)
+  )
+}
+
+recode_labelled_by_labels <- function(x,
+                                      lookup,
+                                      unmatched = c("NA", "keep"),
+                                      includes = FALSE) {
+  unmatched <- match.arg(unmatched)
+
+  # basic checks for lookup structure
+  needed_cols <- c("old_label", "new_value", "new_label")
+  missing_cols <- setdiff(needed_cols, names(lookup))
+  if (length(missing_cols) > 0) {
+    stop(
+      "lookup is missing these columns: ",
+      paste(missing_cols, collapse = ", ")
+    )
+  }
+
+  labs <- labelled::val_labels(x)
+
+  label_df <-
+    tibble::tibble(
+      old_label = names(labs),
+      old_value = unname(labs)
+    )
+
+  # build recode_spec: link lookup$old_label to numeric codes in x
+  if (isFALSE(includes)) {
+    # exact matching (original behaviour)
+    recode_spec <-
+      lookup |>
+      dplyr::left_join(label_df, by = "old_label")
+  } else {
+    # "includes" matching: lookup$old_label is treated as a substring
+    match_idx <-
+      purrr::map_int(
+        lookup$old_label,
+        \(pat) {
+          if (is.na(pat) || pat == "") {
+            return(NA_integer_)
+          }
+
+          hits <- which(grepl(pat, label_df$old_label, ignore.case = TRUE))
+
+          if (length(hits) == 0L) {
+            NA_integer_
+          } else if (length(hits) == 1L) {
+            hits
+          } else {
+            stop(
+              "Pattern '", pat,
+              "' matched multiple labels:\n  ",
+              paste(label_df$old_label[hits], collapse = "\n  "),
+              "\nPlease make the pattern more specific.",
+              call. = FALSE
+            )
+          }
+        }
+      )
+
+    recode_spec <-
+      lookup |>
+      dplyr::mutate(
+        old_value = label_df$old_value[match_idx]
+      )
+  }
+
+  # warn and drop any lookup rows that did not match a label on x
+  missing_rows <- is.na(recode_spec$old_value)
+  if (any(missing_rows)) {
+    missing_labels <- recode_spec$old_label[missing_rows]
+    warning(
+      "These old_label values were not found and will be ignored: ",
+      paste(unique(missing_labels), collapse = ", "),
+      call. = FALSE
+    )
+
+    recode_spec <- recode_spec[!missing_rows, , drop = FALSE]
+  }
+
+  # mapping from old numeric values -> new numeric values
+  recode_map <- recode_spec$new_value
+  names(recode_map) <- as.character(recode_spec$old_value)
+
+  x_num <- as.numeric(x)
+
+  # recode each element
+  x_new <-
+    x_num |>
+    purrr::map_dbl(
+      \(v) {
+        if (is.na(v)) {
+          return(NA_real_)
+        }
+
+        key <- as.character(v)
+
+        if (key %in% names(recode_map)) {
+          recode_map[[key]]   # can itself be NA
+        } else if (unmatched == "keep") {
+          v
+        } else {
+          NA_real_
+        }
+      }
+    )
+
+  # build new value labels from lookup (only matched rows)
+  label_rows <-
+    recode_spec |>
+    dplyr::filter(!is.na(new_value), !is.na(new_label)) |>
+    dplyr::distinct(new_value, .keep_all = TRUE)
+
+  new_labels <- label_rows$new_value
+  names(new_labels) <- label_rows$new_label
+
+  x_new <- labelled::labelled(
+    x_new,
+    labels = new_labels
+  )
+
+  labelled::var_label(x_new) <- labelled::var_label(x)
+
+  x_new
+}
+
