@@ -495,6 +495,7 @@ nssec_all <- nssec_rec %>%
   select(NSID, nssec17, nssec18, nssec19, nssec20, nssec25, nssec32)
 
 # NS-SEC Parents --------------------------------------------------------------------
+
 # Load and select parental NS-SEC variables from Sweeps 1–5
 nssec_parents_vars <- list(
   S1 = ns_data[["S1familybackground"]] %>%
@@ -510,86 +511,114 @@ nssec_parents_vars <- list(
 )
 
 # Merge all parental NS-SEC variables by NSID
-nssec_parents_all <- reduce(nssec_parents_vars, full_join, by = "NSID")
+nssec_parents_all <- reduce(nssec_parents_vars, full_join, by = "NSID") %>%
+  # Add '_raw' suffix to all 'nssec*' variable names for simpler re-coding & cross-checks
+  rename_with(
+    ~ stringr::str_c(.x, "_raw"),
+    contains("nssec")
+  )
 
-# Harmonise values (preserve decimals, apply missing codes)
-recode_nssec_detail <- function(x) {
+# Fix labels
+## Missing labels
+nssec_parents_labels_missing <- c(
+  "Missing - household data lost" = -999,
+  "Parent not interviewed" = -99,
+  "Parent not present" = -98,
+  "Insufficient information" = -94
+)
+
+nssec_parents_all <- nssec_parents_all %>%
+  mutate(
+    # Sweeps with common labels
+    across(
+      -NSID,
+      ~ labelled(
+        .x,
+        ## Re-using nssec_labels_core as the occupation codes/labels are the same for parent variables as well.
+        labels = c(nssec_parents_labels_missing, nssec_labels_core)
+      )
+    )
+  )
+
+# Function to harmonise values (handle decimals, recode missing codes)
+recode_nssec_parents <- function(x) {
   case_when(
     floor(x) %in% 1:17 ~ floor(x),
-    x %in% c(-999, -94) ~ -2,
+    x == -999 ~ -2,
     x %in% c(-99, -98) | is.na(x) ~ -3,
+    x == -94 ~ -8,
     TRUE ~ x
   )
 }
 
 # Apply recode and assign to derived variables
-nssec_parents_all <- nssec_parents_all %>%
+nssec_parents_rec <- nssec_parents_all %>%
   mutate(
-    nssecma14 = recode_nssec_detail(nssecma14),
-    nssecpa14 = recode_nssec_detail(nssecpa14),
-    nssecma15 = recode_nssec_detail(nssecma15),
-    nssecpa15 = recode_nssec_detail(nssecpa15),
-    nssecma16 = recode_nssec_detail(nssecma16),
-    nssecpa16 = recode_nssec_detail(nssecpa16),
-    nssecma17 = recode_nssec_detail(nssecma17),
-    nssecpa17 = recode_nssec_detail(nssecpa17),
-    nssecma18 = recode_nssec_detail(nssecma18),
-    nssecpa18 = recode_nssec_detail(nssecpa18)
+    nssecma14 = recode_nssec_parents(nssecma14_raw),
+    nssecpa14 = recode_nssec_parents(nssecpa14_raw),
+    nssecma15 = recode_nssec_parents(nssecma15_raw),
+    nssecpa15 = recode_nssec_parents(nssecpa15_raw),
+    nssecma16 = recode_nssec_parents(nssecma16_raw),
+    nssecpa16 = recode_nssec_parents(nssecpa16_raw),
+    nssecma17 = recode_nssec_parents(nssecma17_raw),
+    nssecpa17 = recode_nssec_parents(nssecpa17_raw),
+    nssecma18 = recode_nssec_parents(nssecma18_raw),
+    nssecpa18 = recode_nssec_parents(nssecpa18_raw)
   ) %>%
-  mutate(across(
-    c(starts_with("nssecma"), starts_with("nssecpa")),
-    ~ factor(
-      .x,
-      levels = c(
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16,
-        17,
-        -1,
-        -2,
-        -3,
-        -8,
-        -9
-      ),
-      labels = c(
-        "Employers in large organisations",
-        "Higher managerial and administrative occupations",
-        "Higher professional occupations",
-        "Lower professional and higher technical occupations",
-        "Lower managerial and administrative occupations",
-        "Higher supervisory occupations",
-        "Intermediate occupations",
-        "Employers in small establishments",
-        "Own account workers",
-        "Lower supervisory occupations",
-        "Lower technical occupations",
-        "Semi-routine occupations",
-        "Routine occupations",
-        "Never worked and long-term unemployed",
-        "Full-time student",
-        "Not classified or inadequately stated",
-        "Not classifiable for other reasons",
-        "Item not applicable",
-        "Script error/information lost",
-        "Not asked at the fieldwork stage/participated/interviewed",
-        "Don’t know/insufficient information",
-        "Refusal"
+  mutate(
+    across(
+      c(starts_with("nssec") & !ends_with("raw")),
+      ~ labelled(
+        .x,
+        labels = c(
+          "Employers in large organisations" = 1,
+          "Higher managerial and administrative occupations" = 2,
+          "Higher professional occupations" = 3,
+          "Lower professional and higher technical occupations" = 4,
+          "Lower managerial and administrative occupations" = 5,
+          "Higher supervisory occupations" = 6,
+          "Intermediate occupations" = 7,
+          "Employers in small establishments" = 8,
+          "Own account workers" = 9,
+          "Lower supervisory occupations" = 10,
+          "Lower technical occupations" = 11,
+          "Semi-routine occupations" = 12,
+          "Routine occupations" = 13,
+          "Never worked and long-term unemployed" = 14,
+          "Full-time student" = 15,
+          "Not classified or inadequately stated" = 16,
+          "Not classifiable for other reasons" = 17,
+          common_missing_labels
+        )
       )
     )
-  )) %>%
+  )
+
+# Cross-checks
+nssec_parents_names <- nssec_parents_rec %>%
+  dplyr::select(starts_with("nssec") & !ends_with("raw")) %>%
+  names()
+
+nssec_parents_pairs <- tibble(
+  y = nssec_parents_names,
+  x = str_c(nssec_parents_names, "_raw")
+)
+
+nssec_parents_crosstabs <- nssec_parents_pairs |>
+  mutate(
+    crosstab = map2(
+      x,
+      y,
+      ~ make_crosstab(nssec_parents_rec, .x, .y)
+    )
+  )
+
+nssec_parents_crosstabs %>%
+  pull(crosstab) %>%
+  purrr::walk(~ print(.x, n = Inf))
+
+# Extract derived variables
+nssec_parents_all <- nssec_parents_rec %>%
   select(
     NSID,
     nssecma14,
@@ -604,8 +633,8 @@ nssec_parents_all <- nssec_parents_all %>%
     nssecpa18
   )
 
-
 # House Ownership --------------------------------------------------------------------
+
 # Load and select house ownership variables from relevant sweeps
 housing_vars <- list(
   S1 = ns_data[["S1familybackground"]] %>%
@@ -617,11 +646,26 @@ housing_vars <- list(
   S4 = ns_data[["S4familybackground"]] %>%
     select(NSID, hown17 = W4Hous12HH),
   S5 = ns_data[["S5familybackground"]] %>%
-    select(NSID, W5Hous12HH, W5Hous12BHH, W5Hous12CHH),
+    select(
+      NSID,
+      s5_tenure_type = W5Hous12HH,
+      s5_tenure_owned = W5Hous12BHH,
+      s5_tenure_rented = W5Hous12CHH
+    ),
   S6 = ns_data[["S6youngperson"]] %>%
-    select(NSID, W6Hous12YP, W6Hous12bYP, W6Hous12cYP),
+    select(
+      NSID,
+      s6_tenure_type = W6Hous12YP,
+      s6_tenure_owned = W6Hous12bYP,
+      s6_tenure_rented = W6Hous12cYP
+    ),
   S7 = ns_data[["S7youngperson"]] %>%
-    select(NSID, W7Hous12YP, W7Hous12bYP, W7Hous12cYP),
+    select(
+      NSID,
+      s7_tenure_type = W7Hous12YP,
+      s7_tenure_owned = W7Hous12bYP,
+      s7_tenure_rented = W7Hous12cYP
+    ),
   S8 = ns_data[["S8maininterview"]] %>%
     select(NSID, hown25 = W8TENURE),
   S9 = ns_data[["S9derivedvariable"]] %>%
@@ -629,201 +673,113 @@ housing_vars <- list(
 )
 
 # Merge all datasets
-hown_all <- reduce(housing_vars, full_join, by = "NSID")
+hown_all <- reduce(housing_vars, full_join, by = "NSID") %>%
+  # Add '_raw' suffix to all 'hown*' variable names for simpler re-coding & cross-checks
+  rename_with(
+    ~ stringr::str_c(.x, "_raw"),
+    contains("hown")
+  )
 
-# Derive harmonised variables
-hown_all <- hown_all %>%
+# Helpers --------------------------------------------------------------------
+
+# Note:
+## For most sweeps, tenure is derived from a single source variable.
+## This is different for sweeps 5-7, where each sweep provides three indicators:
+## 1) Indicates whether owned/rented.
+## 2) Specifies further tenure if owned (e.g. if owned outright, mortgage, ...).
+## 3) Specifies further tenure if rented (e.g. e.g. rented privately, from a council, rent free, ...)
+
+# Helper for detailed tenure
+recode_tenure_detailed <- function(tenure_type, tenure_owned, tenure_rented) {
+  case_when(
+    tenure_owned == 1 ~ 1,
+    tenure_owned == 2 ~ 2,
+    tenure_owned == 3 ~ 3,
+    tenure_rented == 1 ~ 4,
+    tenure_rented == 2 ~ 5,
+    tenure_rented == 3 ~ 6,
+    tenure_rented == 4 ~ 7,
+    tenure_type == 3 | tenure_owned == 4 | tenure_rented == 5 ~ 8, # Other
+    tenure_owned == -999 | tenure_rented == -999 ~ -2, # Information loss
+    tenure_owned == -92 | tenure_rented == -92 ~ -9, # Refusal
+    tenure_owned == -91 | tenure_rented == -91 ~ -1, # Not applicable
+    tenure_owned == -1 | tenure_rented == -1 ~ -8, # Don't know
+    .default = -3 # Anything else -> Not asked or similar
+  )
+}
+
+# Helper for collapsed tenure
+recode_tenure_collapsed <- function(tenure_type, tenure_owned, tenure_rented) {
+  dplyr::case_when(
+    tenure_owned == 1 ~ 1, # own outright
+    tenure_owned == 2 ~ 2, # mortgage/loan
+    tenure_owned == 3 ~ 3, # shared ownership
+    tenure_rented %in% 1:3 ~ 4, # rent it (any rent source collapsed)
+    tenure_rented == 4 ~ 5, # live rent free
+    tenure_type == 3 | tenure_owned == 4 | tenure_rented == 5 ~ 6, # other
+    tenure_owned == -999 | tenure_rented == -999 ~ -2, # information loss
+    tenure_owned == -92 | tenure_rented == -92 ~ -9, # refusal
+    tenure_owned == -91 | tenure_rented == -91 ~ -1, # not applicable
+    tenure_owned == -1 | tenure_rented == -1 ~ -8, # don't know
+    .default = -3
+  )
+}
+
+## Recode: detailed tenure --------------------------------------------------------------------
+
+hown_rec_detailed <- hown_all %>%
   mutate(
-    # Detailed versions for S1-S7
     hownteen14 = case_when(
-      hown14 > 0 ~ hown14,
-      hown14 == -999 ~ -2,
-      hown14 == -92 ~ -9,
-      hown14 == -91 ~ -1,
-      hown14 == -1 ~ -8,
-      is.na(hown14) ~ -3
+      hown14_raw > 0 ~ hown14_raw,
+      hown14_raw == -999 ~ -2,
+      hown14_raw == -92 ~ -9,
+      hown14_raw == -91 ~ -1,
+      hown14_raw == -1 ~ -8,
+      is.na(hown14_raw) ~ -3
     ),
     hownteen15 = case_when(
-      hown15 > 0 ~ hown15,
-      hown15 %in% c(-998, -997, -995, -99) ~ -2,
-      hown15 == -92 ~ -9,
-      hown15 == -91 ~ -1,
-      hown15 == -1 ~ -8,
-      is.na(hown15) ~ -3
+      hown15_raw > 0 ~ hown15_raw,
+      hown15_raw %in% c(-998, -997, -995, -99) ~ -2,
+      hown15_raw == -92 ~ -9,
+      hown15_raw == -91 ~ -1,
+      hown15_raw == -1 ~ -8,
+      is.na(hown15_raw) ~ -3
     ),
     hownteen16 = case_when(
-      hown16 > 0 ~ hown16,
-      hown16 == -999 ~ -2,
-      hown16 == -92 ~ -9,
-      hown16 == -91 ~ -1,
-      hown16 == -1 ~ -8,
-      is.na(hown16) ~ -3
+      hown16_raw > 0 ~ hown16_raw,
+      hown16_raw == -999 ~ -2,
+      hown16_raw == -92 ~ -9,
+      hown16_raw == -91 ~ -1,
+      hown16_raw == -1 ~ -8,
+      is.na(hown16_raw) ~ -3
     ),
     hownteen17 = case_when(
-      hown17 > 0 ~ hown17,
-      hown17 %in% c(-999, -997) ~ -2,
-      hown17 == -92 ~ -9,
-      hown17 == -91 ~ -1,
-      hown17 == -1 ~ -8,
-      is.na(hown17) ~ -3
+      hown17_raw > 0 ~ hown17_raw,
+      hown17_raw %in% c(-999, -997) ~ -2,
+      hown17_raw == -92 ~ -9,
+      hown17_raw == -91 ~ -1,
+      hown17_raw == -1 ~ -8,
+      is.na(hown17_raw) ~ -3
     ),
-    hownteen18 = case_when(
-      W5Hous12BHH == 1 ~ 1, # Owned outright
-      W5Hous12BHH == 2 ~ 2, # Being bought on a mortgage/bank loan
-      W5Hous12BHH == 3 ~ 3, # Shared ownership (owns & rents property)
-      W5Hous12CHH == 1 ~ 4, # Rented from a Council or New Town
-      W5Hous12CHH == 2 ~ 5, # Rented from a Housing Association
-      W5Hous12CHH == 3 ~ 6, # Rented privately
-      W5Hous12CHH == 4 ~ 7, # Rent free
-      W5Hous12HH == 3 | W5Hous12BHH == 4 | W5Hous12CHH == 5 ~ 8, # Other
-      W5Hous12BHH %in% c(-999, -92) | W5Hous12CHH == -92 ~ -9,
-      W5Hous12BHH == -91 | W5Hous12CHH == -91 ~ -1,
-      W5Hous12BHH == -1 | W5Hous12CHH == -1 ~ -8,
-      is.na(W5Hous12BHH) & is.na(W5Hous12CHH) ~ -3
+    hownteen18 = recode_tenure_detailed(
+      tenure_type = s5_tenure_type,
+      tenure_owned = s5_tenure_owned,
+      tenure_rented = s5_tenure_rented
     ),
-    hownteen19 = case_when(
-      W6Hous12bYP == 1 ~ 1,
-      W6Hous12bYP == 2 ~ 2,
-      W6Hous12bYP == 3 ~ 3,
-      W6Hous12cYP == 1 ~ 4,
-      W6Hous12cYP == 2 ~ 5,
-      W6Hous12cYP == 3 ~ 6,
-      W6Hous12cYP == 4 ~ 7,
-      W6Hous12YP == 3 | W6Hous12bYP == 4 | W6Hous12cYP == 5 ~ 8,
-      W6Hous12bYP %in% c(-999, -92) | W6Hous12cYP == -92 ~ -9,
-      W6Hous12bYP == -91 | W6Hous12cYP == -91 ~ -1,
-      W6Hous12bYP == -1 | W6Hous12cYP == -1 ~ -8,
-      is.na(W6Hous12bYP) & is.na(W6Hous12cYP) ~ -3
+    hownteen19 = recode_tenure_detailed(
+      tenure_type = s6_tenure_type,
+      tenure_owned = s6_tenure_owned,
+      tenure_rented = s6_tenure_rented
     ),
-    hownteen20 = case_when(
-      W7Hous12bYP == 1 ~ 1,
-      W7Hous12bYP == 2 ~ 2,
-      W7Hous12bYP == 3 ~ 3,
-      W7Hous12cYP == 1 ~ 4,
-      W7Hous12cYP == 2 ~ 5,
-      W7Hous12cYP == 3 ~ 6,
-      W7Hous12cYP == 4 ~ 7,
-      W7Hous12YP == 3 | W7Hous12bYP == 4 | W7Hous12cYP == 5 ~ 8,
-      W7Hous12bYP %in% c(-999, -92) | W7Hous12cYP == -92 ~ -9,
-      W7Hous12bYP == -91 | W7Hous12cYP == -91 ~ -1,
-      W7Hous12bYP == -1 | W7Hous12cYP == -1 ~ -8,
-      is.na(W7Hous12bYP) & is.na(W7Hous12cYP) ~ -3
+    hownteen20 = recode_tenure_detailed(
+      tenure_type = s7_tenure_type,
+      tenure_owned = s7_tenure_owned,
+      tenure_rented = s7_tenure_rented
     )
-  ) %>%
-  mutate(
-    hown14 = case_when(
-      hown14 == 1 ~ 1, # own outright
-      hown14 == 2 ~ 2, # own, buying with help of mortgage/loan
-      hown14 == 3 ~ 3, # part rent, part mortgage
-      hown14 %in% 4:6 ~ 4, # rent it
-      hown14 == 7 ~ 5, # live-in rent free
-      hown14 == 8 ~ 6, # other
-      hown14 == -999 ~ -2,
-      hown14 == -92 ~ -9,
-      hown14 == -91 ~ -1,
-      hown14 == -1 ~ -8,
-      is.na(hown14) ~ -3
-    ),
-    hown15 = case_when(
-      hown15 == 1 ~ 1,
-      hown15 == 2 ~ 2,
-      hown15 == 3 ~ 3,
-      hown15 %in% 4:6 ~ 4,
-      hown15 == 7 ~ 5,
-      hown15 == 8 ~ 6,
-      hown15 %in% c(-998, -997, -995, -99) ~ -2,
-      hown15 == -92 ~ -9,
-      hown15 == -91 ~ -1,
-      hown15 == -1 ~ -8,
-      is.na(hown15) ~ -3
-    ),
-    hown16 = case_when(
-      hown16 == 1 ~ 1,
-      hown16 == 2 ~ 2,
-      hown16 == 3 ~ 3,
-      hown16 %in% 4:6 ~ 4,
-      hown16 == 7 ~ 5,
-      hown16 == 8 ~ 6,
-      hown16 == -999 ~ -2,
-      hown16 == -92 ~ -9,
-      hown16 == -91 ~ -1,
-      hown16 == -1 ~ -8,
-      is.na(hown16) ~ -3
-    ),
-    hown17 = case_when(
-      hown17 == 1 ~ 1,
-      hown17 == 2 ~ 2,
-      hown17 == 3 ~ 3,
-      hown17 %in% 4:6 ~ 4,
-      hown17 == 7 ~ 5,
-      hown17 == 8 ~ 6,
-      hown17 %in% c(-999, -997) ~ -2,
-      hown17 == -92 ~ -9,
-      hown17 == -91 ~ -1,
-      hown17 == -1 ~ -8,
-      is.na(hown17) ~ -3
-    ),
-    hown18 = case_when(
-      W5Hous12BHH == 1 ~ 1,
-      W5Hous12BHH == 2 ~ 2,
-      W5Hous12BHH == 3 ~ 3,
-      W5Hous12CHH %in% 1:3 ~ 4,
-      W5Hous12CHH == 4 ~ 5,
-      W5Hous12BHH == 4 | W5Hous12CHH == 5 ~ 6,
-      W5Hous12BHH %in% c(-999, -92) | W5Hous12CHH == -92 ~ -9,
-      W5Hous12BHH == -91 | W5Hous12CHH == -91 ~ -1,
-      W5Hous12BHH == -1 | W5Hous12CHH == -1 ~ -8,
-      is.na(W5Hous12BHH) & is.na(W5Hous12CHH) ~ -3
-    ),
-    hown19 = case_when(
-      W6Hous12bYP == 1 ~ 1,
-      W6Hous12bYP == 2 ~ 2,
-      W6Hous12bYP == 3 ~ 3,
-      W6Hous12cYP %in% 1:3 ~ 4,
-      W6Hous12cYP == 4 ~ 5,
-      W6Hous12bYP == 4 | W6Hous12cYP == 5 ~ 6,
-      W6Hous12bYP %in% c(-999, -92) | W6Hous12cYP == -92 ~ -9,
-      W6Hous12bYP == -91 | W6Hous12cYP == -91 ~ -1,
-      W6Hous12bYP == -1 | W6Hous12cYP == -1 ~ -8,
-      is.na(W6Hous12bYP) & is.na(W6Hous12cYP) ~ -3
-    ),
-    hown20 = case_when(
-      W7Hous12bYP == 1 ~ 1,
-      W7Hous12bYP == 2 ~ 2,
-      W7Hous12bYP == 3 ~ 3,
-      W7Hous12cYP %in% 1:3 ~ 4,
-      W7Hous12cYP == 4 ~ 5,
-      W7Hous12bYP == 4 | W7Hous12cYP == 5 ~ 6,
-      W7Hous12bYP %in% c(-999, -92) | W7Hous12cYP == -92 ~ -9,
-      W7Hous12bYP == -91 | W7Hous12cYP == -91 ~ -1,
-      W7Hous12bYP == -1 | W7Hous12cYP == -1 ~ -8,
-      is.na(W7Hous12bYP) & is.na(W7Hous12cYP) ~ -3
-    ),
-    hown25 = case_when(
-      hown25 == 1 ~ 1,
-      hown25 == 2 ~ 2,
-      hown25 == 3 ~ 3,
-      hown25 == 4 ~ 4,
-      hown25 == 5 ~ 5,
-      hown25 %in% 6:7 ~ 6,
-      hown25 == -9 ~ -9,
-      hown25 == -8 ~ -8,
-      hown25 == -1 ~ -1,
-      is.na(hown25) ~ -3
-    ),
-    hown32 = case_when(
-      hown32 == 1 ~ 1,
-      hown32 == 2 ~ 2,
-      hown32 == 3 ~ 3,
-      hown32 == 4 ~ 4,
-      hown32 == 5 ~ 5,
-      hown32 %in% 6:7 ~ 6,
-      hown32 == -9 ~ -9,
-      hown32 == -8 ~ -8,
-      hown32 == -1 ~ -1,
-      is.na(hown32) ~ -3
-    )
-  ) %>%
+  )
+
+# Add labels
+hown_rec_detailed <- hown_rec_detailed %>%
   mutate(
     across(
       c(
@@ -835,47 +791,170 @@ hown_all <- hown_all %>%
         hownteen19,
         hownteen20
       ),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(1, 2, 3, 4, 5, 6, 7, 8, -1, -2, -3, -8, -9),
         labels = c(
-          "Owned outright",
-          "Being bought on a mortgage/bank loan",
-          "Shared ownership (owns & rents property)",
-          "Rented from a Council or New Town",
-          "Rented from a Housing Association",
-          "Rented privately",
-          "Rent free",
-          "Some other arrangement",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
-        )
-      )
-    ),
-    across(
-      c(hown14, hown15, hown16, hown17, hown18, hown19, hown20, hown25, hown32),
-      ~ factor(
-        .x,
-        levels = c(1, 2, 3, 4, 5, 6, -1, -2, -3, -8, -9),
-        labels = c(
-          "Owned outright",
-          "Owned, buying with help of mortgage/loan",
-          "Spart rent, part mortgage",
-          "Rent it",
-          "live rent-free",
-          "Other",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
+          "Owned outright" = 1,
+          "Being bought on a mortgage/bank loan" = 2,
+          "Shared ownership (owns & rents property)" = 3,
+          "Rented from a Council or New Town" = 4,
+          "Rented from a Housing Association" = 5,
+          "Rented privately" = 6,
+          "Rent free" = 7,
+          "Some other arrangement" = 8,
+          common_missing_labels
         )
       )
     )
-  ) %>%
+  )
+
+## Recode: simple tenure --------------------------------------------------------------------
+
+hown_rec_simple <- hown_rec_detailed %>%
+  mutate(
+    hown14 = case_when(
+      hown14_raw == 1 ~ 1, # own outright
+      hown14_raw == 2 ~ 2, # own, buying with help of mortgage/loan
+      hown14_raw == 3 ~ 3, # part rent, part mortgage
+      hown14_raw %in% 4:6 ~ 4, # rent it
+      hown14_raw == 7 ~ 5, # live-in rent free
+      hown14_raw == 8 ~ 6, # other
+      hown14_raw == -999 ~ -2,
+      hown14_raw == -92 ~ -9,
+      hown14_raw == -91 ~ -1,
+      hown14_raw == -1 ~ -8,
+      is.na(hown14_raw) ~ -3
+    ),
+    hown15 = case_when(
+      hown15_raw == 1 ~ 1,
+      hown15_raw == 2 ~ 2,
+      hown15_raw == 3 ~ 3,
+      hown15_raw %in% 4:6 ~ 4,
+      hown15_raw == 7 ~ 5,
+      hown15_raw == 8 ~ 6,
+      hown15_raw %in% c(-998, -997, -995, -99) ~ -2,
+      hown15_raw == -92 ~ -9,
+      hown15_raw == -91 ~ -1,
+      hown15_raw == -1 ~ -8,
+      is.na(hown15_raw) ~ -3
+    ),
+    hown16 = case_when(
+      hown16_raw == 1 ~ 1,
+      hown16_raw == 2 ~ 2,
+      hown16_raw == 3 ~ 3,
+      hown16_raw %in% 4:6 ~ 4,
+      hown16_raw == 7 ~ 5,
+      hown16_raw == 8 ~ 6,
+      hown16_raw == -999 ~ -2,
+      hown16_raw == -92 ~ -9,
+      hown16_raw == -91 ~ -1,
+      hown16_raw == -1 ~ -8,
+      is.na(hown16_raw) ~ -3
+    ),
+    hown17 = case_when(
+      hown17_raw == 1 ~ 1,
+      hown17_raw == 2 ~ 2,
+      hown17_raw == 3 ~ 3,
+      hown17_raw %in% 4:6 ~ 4,
+      hown17_raw == 7 ~ 5,
+      hown17_raw == 8 ~ 6,
+      hown17_raw %in% c(-999, -997) ~ -2,
+      hown17_raw == -92 ~ -9,
+      hown17_raw == -91 ~ -1,
+      hown17_raw == -1 ~ -8,
+      is.na(hown17_raw) ~ -3
+    ),
+    hown18 = recode_tenure_collapsed(
+      tenure_type = s5_tenure_type,
+      tenure_owned = s5_tenure_owned,
+      tenure_rented = s5_tenure_rented
+    ),
+    hown19 = recode_tenure_collapsed(
+      tenure_type = s6_tenure_type,
+      tenure_owned = s6_tenure_owned,
+      tenure_rented = s6_tenure_rented
+    ),
+    hown20 = recode_tenure_collapsed(
+      tenure_type = s7_tenure_type,
+      tenure_owned = s7_tenure_owned,
+      tenure_rented = s7_tenure_rented
+    ),
+    hown25 = case_when(
+      hown25_raw == 1 ~ 1,
+      hown25_raw == 2 ~ 2,
+      hown25_raw == 3 ~ 3,
+      hown25_raw == 4 ~ 4,
+      hown25_raw == 5 ~ 5,
+      hown25_raw %in% 6:7 ~ 6,
+      hown25_raw == -9 ~ -9,
+      hown25_raw == -8 ~ -8,
+      hown25_raw == -1 ~ -1,
+      is.na(hown25_raw) ~ -3
+    ),
+    hown32 = case_when(
+      hown32_raw == 1 ~ 1,
+      hown32_raw == 2 ~ 2,
+      hown32_raw == 3 ~ 3,
+      hown32_raw == 4 ~ 4,
+      hown32_raw == 5 ~ 5,
+      hown32_raw %in% 6:7 ~ 6,
+      hown32_raw == -9 ~ -9,
+      hown32_raw == -8 ~ -8,
+      hown32_raw == -1 ~ -1,
+      is.na(hown32_raw) ~ -3
+    )
+  )
+
+# Recode labels
+hown_rec_simple <- hown_rec_simple %>%
+  mutate(
+    across(
+      c(hown14, hown15, hown16, hown17, hown18, hown19, hown20, hown25, hown32),
+      ~ labelled(
+        .x,
+        labels = c(
+          "Owned outright" = 1,
+          "Owned, buying with help of mortgage/loan" = 2,
+          "Part rent, part mortgage" = 3,
+          "Rent it" = 4,
+          "live rent-free" = 5,
+          "Other" = 6,
+          common_missing_labels
+        )
+      )
+    )
+  )
+
+
+## Cross-checks for single-variable re-codes --------------------------------------------------------------------
+
+hown_names <- hown_rec_simple %>%
+  dplyr::select(starts_with("hown") & !ends_with(c("raw", 18:20))) %>%
+  names()
+
+hown_pairs <- tibble(
+  y = hown_names,
+  x = str_c(hown_names, "_raw")
+) %>%
+  # 'hownteen' must be cross-tabulated against 'hown_raw'
+  mutate(x = str_replace(x, "hownteen", "hown"))
+
+hown_crosstabs <- hown_pairs |>
+  mutate(
+    crosstab = map2(
+      x,
+      y,
+      ~ make_crosstab(hown_rec_simple, .x, .y)
+    )
+  )
+
+hown_crosstabs %>%
+  pull(crosstab) %>%
+  purrr::walk(~ print(.x, n = Inf))
+
+# Extract derived variables
+
+hown_all <- hown_rec_simple %>%
   select(
     NSID,
     hown14,
@@ -896,8 +975,8 @@ hown_all <- hown_all %>%
     hownteen20
   )
 
-
 # Income Own + Partner --------------------------------------------------------------------
+
 # Load and select income variables from relevant sweeps
 income_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>% select(NSID),
