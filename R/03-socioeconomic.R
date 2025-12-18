@@ -1,153 +1,164 @@
 # Economic Activity --------------------------------------------------------------------
+
 ecoact_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>% select(NSID),
   S4 = ns_data[["S4youngperson"]] %>%
-    select(NSID, ecoact17 = W4empsYP),
+    select(NSID, ecoact17_raw = W4empsYP),
   S5 = ns_data[["S5youngperson"]] %>%
-    select(NSID, ecoact18 = W5mainactYP),
+    select(NSID, ecoact18_raw = W5mainactYP),
   S6 = ns_data[["S6youngperson"]] %>%
-    select(NSID, ecoact19 = W6TCurrentAct),
+    select(NSID, ecoact19_raw = W6TCurrentAct),
   S7 = ns_data[["S7youngperson"]] %>%
-    select(NSID, ecoact20 = W7TCurrentAct),
+    select(NSID, ecoact20_raw = W7TCurrentAct),
   S8 = ns_data[["S8derivedvariable"]] %>%
-    select(NSID, ecoactadu25 = W8DACTIVITYC),
+    select(NSID, ecoactadu25_raw = W8DACTIVITYC),
   S9 = ns_data[["S9derivedvariable"]] %>%
-    select(NSID, ecoactadu32 = W9DACTIVITYC)
+    select(NSID, ecoactadu32_raw = W9DACTIVITYC)
 )
+
 # Merge by NSID
 ecoact_all <- reduce(ecoact_vars, full_join, by = "NSID")
 
 # Harmonise missing values and derive economic activity variables
-ecoact_all <- ecoact_all %>%
+ecoact_rec <- ecoact_all %>%
   mutate(
     ## Sweep 4
     ecoact17 = case_when(
-      ecoact17 %in% 1:2 ~ 1, # In paid work
-      ecoact17 == 4 ~ 2, # Apprenticeship/government training scheme/training
-      ecoact17 == 5 | ecoact17 == -91 ~ 3, # Education
-      ecoact17 == 3 ~ 4, # Unemployed
-      ecoact17 == 6 ~ 5, # Looking after home/family
-      ecoact17 %in% c(7, 8, 9) ~ 6, # Sick/disabled, other, doing something else
-      ecoact17 == -92 ~ -9,
-      ecoact17 == -999 ~ -2,
-      ecoact17 == -94 ~ -8,
+      ecoact17_raw %in% 1:2 ~ 1, # In paid work
+      ecoact17_raw == 4 ~ 2, # Apprenticeship/government training scheme/training
+      ecoact17_raw == 5 | ecoact17_raw == -91 ~ 3, # Education
+      ecoact17_raw == 3 ~ 4, # Unemployed
+      ecoact17_raw == 6 ~ 5, # Looking after home/family
+      ecoact17_raw %in% c(7, 8, 9) ~ 6, # Sick/disabled, other, doing something else
+      ecoact17_raw == -92 ~ -9,
+      ecoact17_raw == -999 ~ -2,
+      ecoact17_raw == -94 ~ -8,
       TRUE ~ -3
     ),
     ## Sweep 5
     ecoact18 = case_when(
-      ecoact18 == 3 ~ 1,
-      ecoact18 %in% c(1, 5, 6) ~ 2,
-      ecoact18 %in% c(2, 4) ~ 3,
-      ecoact18 == 7 ~ 4,
-      ecoact18 == 8 ~ 5,
-      ecoact18 %in% 9:11 ~ 6,
-      ecoact18 == -94 ~ -8,
+      ecoact18_raw == 3 ~ 1,
+      ecoact18_raw %in% c(1, 5, 6) ~ 2,
+      ecoact18_raw %in% c(2, 4) ~ 3,
+      ecoact18_raw == 7 ~ 4,
+      ecoact18_raw == 8 ~ 5,
+      ecoact18_raw %in% 9:11 ~ 6,
+      ecoact18_raw == -94 ~ -8,
       TRUE ~ -3
     ),
     ## Sweep 6
     ecoact19 = case_when(
-      ecoact19 == 3 ~ 1,
-      ecoact19 %in% c(4, 5) ~ 2,
-      ecoact19 %in% c(1, 2, 10) ~ 3,
-      ecoact19 == 8 ~ 4,
-      ecoact19 == 7 ~ 5,
-      ecoact19 %in% c(6, 9, 11) ~ 6,
-      ecoact19 == -91 ~ -8,
+      ecoact19_raw == 3 ~ 1,
+      ecoact19_raw %in% c(4, 5) ~ 2,
+      ecoact19_raw %in% c(1, 2, 10) ~ 3,
+      ecoact19_raw == 8 ~ 4,
+      ecoact19_raw == 7 ~ 5,
+      ecoact19_raw %in% c(6, 9, 11) ~ 6,
+      ecoact19_raw == -91 ~ -8,
       TRUE ~ -3
     ),
     ## Sweep 7
     ecoact20 = case_when(
-      ecoact20 == 3 ~ 1,
-      ecoact20 %in% c(4, 5, 11) ~ 2,
-      ecoact20 %in% c(1, 2, 9) ~ 3,
-      ecoact20 == 8 ~ 4,
-      ecoact20 == 7 ~ 5,
-      ecoact20 %in% c(6, 10, 12:15) ~ 6,
-      ecoact20 == -91 ~ -1,
+      ecoact20_raw == 3 ~ 1,
+      ecoact20_raw %in% c(4, 5, 11) ~ 2,
+      ecoact20_raw %in% c(1, 2, 9) ~ 3,
+      ecoact20_raw == 8 ~ 4,
+      ecoact20_raw == 7 ~ 5,
+      ecoact20_raw %in% c(6, 10, 12:15) ~ 6,
+      ecoact20_raw == -91 ~ -1,
       TRUE ~ -3
     ),
     ## Sweep 8
     ecoact25 = case_when(
-      ecoactadu25 %in% c(1, 2) ~ 1,
-      ecoactadu25 %in% c(6, 7) ~ 2,
-      ecoactadu25 == 5 ~ 3,
-      ecoactadu25 == 4 ~ 4,
-      ecoactadu25 == 9 ~ 5,
-      ecoactadu25 %in% c(3, 8, 10) ~ 6,
-      ecoactadu25 == -9 ~ -9,
-      ecoactadu25 == -8 ~ -8,
-      ecoactadu25 == -1 ~ -1,
+      ecoactadu25_raw %in% c(1, 2) ~ 1,
+      ecoactadu25_raw %in% c(6, 7) ~ 2,
+      ecoactadu25_raw == 5 ~ 3,
+      ecoactadu25_raw == 4 ~ 4,
+      ecoactadu25_raw == 9 ~ 5,
+      ecoactadu25_raw %in% c(3, 8, 10) ~ 6,
+      ecoactadu25_raw == -9 ~ -9,
+      ecoactadu25_raw == -8 ~ -8,
+      ecoactadu25_raw == -1 ~ -1,
       TRUE ~ -3
     ),
     ## Sweep 9
     ecoact32 = case_when(
-      ecoactadu32 %in% c(1, 2) ~ 1,
-      ecoactadu32 %in% c(6, 7) ~ 2,
-      ecoactadu32 == 5 ~ 3,
-      ecoactadu32 == 4 ~ 4,
-      ecoactadu32 == 9 ~ 5,
-      ecoactadu32 %in% c(3, 8, 10) ~ 6,
-      ecoactadu32 == -9 ~ -9,
-      ecoactadu32 == -8 ~ -8,
-      ecoactadu32 == -1 ~ -1,
+      ecoactadu32_raw %in% c(1, 2) ~ 1,
+      ecoactadu32_raw %in% c(6, 7) ~ 2,
+      ecoactadu32_raw == 5 ~ 3,
+      ecoactadu32_raw == 4 ~ 4,
+      ecoactadu32_raw == 9 ~ 5,
+      ecoactadu32_raw %in% c(3, 8, 10) ~ 6,
+      ecoactadu32_raw == -9 ~ -9,
+      ecoactadu32_raw == -8 ~ -8,
+      ecoactadu32_raw == -1 ~ -1,
       TRUE ~ -3
     ),
     ## Detailed versions (S8, S9 only)
     ecoactadu25 = case_when(
-      !is.na(ecoactadu25) ~ ecoactadu25,
-      is.na(ecoactadu25) ~ -3
+      !is.na(ecoactadu25_raw) ~ ecoactadu25_raw,
+      is.na(ecoactadu25_raw) ~ -3
     ),
     ecoactadu32 = case_when(
-      !is.na(ecoactadu32) ~ ecoactadu32,
-      is.na(ecoactadu32) ~ -3
+      !is.na(ecoactadu32_raw) ~ ecoactadu32_raw,
+      is.na(ecoactadu32_raw) ~ -3
     )
   ) %>%
   mutate(
     across(
       c(ecoact17, ecoact18, ecoact19, ecoact20, ecoact25, ecoact32),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(1, 2, 3, 4, 5, 6, -1, -2, -3, -8, -9),
         labels = c(
-          "In paid work",
-          "Apprenticeship/government training scheme/training",
-          "Education",
-          "Unemployed",
-          "Looking after home",
-          "Other",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
+          "In paid work" = 1L,
+          "Apprenticeship/government training scheme/training" = 2L,
+          "Education" = 3L,
+          "Unemployed" = 4L,
+          "Looking after home" = 5L,
+          "Other" = 6L,
+          common_missing_labels
         )
       )
     ),
     across(
       c(ecoactadu25, ecoactadu32),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, -1, -2, -3, -8, -9),
         labels = c(
-          "employee – in paid work",
-          "self employed",
-          "voluntary work",
-          "Unemployed",
-          "Education",
-          "Apprenticeship",
-          "government employment scheme",
-          "sick/disabled",
-          "Looking after home/family",
-          "Something else",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
+          "employee – in paid work" = 1L,
+          "self employed" = 2L,
+          "voluntary work" = 3L,
+          "Unemployed" = 4L,
+          "Education" = 5L,
+          "Apprenticeship" = 6L,
+          "government employment scheme" = 7L,
+          "sick/disabled" = 8L,
+          "Looking after home/family" = 9L,
+          "Something else" = 10L,
+          common_missing_labels
         )
       )
     )
-  ) %>%
+  )
+
+# Checks
+ecoact_rec %>%
+  count(ecoact17_raw, ecoact17)
+
+ecoact_rec %>%
+  count(ecoact18_raw, ecoact18)
+
+ecoact_rec %>%
+  count(ecoact19_raw, ecoact19)
+
+ecoact_rec %>%
+  count(ecoact20_raw, ecoact20)
+
+ecoact_rec %>%
+  count(ecoactadu25_raw, ecoact25)
+
+# Extract variables
+ecoact_all <- ecoact_rec %>%
   select(
     NSID,
     ecoact17,
@@ -161,6 +172,7 @@ ecoact_all <- ecoact_all %>%
   )
 
 # Economic Activity Parents --------------------------------------------------------------------
+
 # Load & select parental employment variables for Sweeps 1–4
 ecoactDT_parents_vars <- list(
   S1 = ns_data[["S1familybackground"]] %>%
@@ -173,11 +185,17 @@ ecoactDT_parents_vars <- list(
     select(NSID, ecoactdtma17 = w4empsmum, ecoactdtpa17 = w4empsdad)
 )
 
-# Merge all
-ecoactDT_parents_all <- reduce(ecoactDT_parents_vars, full_join, by = "NSID")
+ecoactDT_parents_all <- ecoactDT_parents_vars %>%
+  # Merge all
+  reduce(full_join, by = "NSID") %>%
+  # Add '_raw' suffix to all 'ecoact*' variable names for simpler re-coding & cross-checks
+  rename_with(
+    ~ stringr::str_c(.x, "_raw"),
+    contains("ecoact")
+  )
 
 # Recode helper function
-recode_detailed <- function(x) {
+recode_ecoactDT <- function(x) {
   case_when(
     x == 1 ~ 1, # FT
     x == 2 ~ 2, # PT
@@ -198,44 +216,76 @@ recode_detailed <- function(x) {
 }
 
 # Apply recode to each sweep
-ecoactDT_parents_all <- ecoactDT_parents_all %>%
+ecoactDT_parents_rec <- ecoactDT_parents_all %>%
   mutate(
-    ecoactdtma14 = recode_detailed(ecoactdtma14),
-    ecoactdtpa14 = recode_detailed(ecoactdtpa14),
-    ecoactdtma15 = recode_detailed(ecoactdtma15),
-    ecoactdtpa15 = recode_detailed(ecoactdtpa15),
-    ecoactdtma16 = recode_detailed(ecoactdtma16),
-    ecoactdtpa16 = recode_detailed(ecoactdtpa16),
-    ecoactdtma17 = recode_detailed(ecoactdtma17),
-    ecoactdtpa17 = recode_detailed(ecoactdtpa17)
+    ecoactdtma14 = recode_ecoactDT(ecoactdtma14_raw),
+    ecoactdtpa14 = recode_ecoactDT(ecoactdtpa14_raw),
+    ecoactdtma15 = recode_ecoactDT(ecoactdtma15_raw),
+    ecoactdtpa15 = recode_ecoactDT(ecoactdtpa15_raw),
+    ecoactdtma16 = recode_ecoactDT(ecoactdtma16_raw),
+    ecoactdtpa16 = recode_ecoactDT(ecoactdtpa16_raw),
+    ecoactdtma17 = recode_ecoactDT(ecoactdtma17_raw),
+    ecoactdtpa17 = recode_ecoactDT(ecoactdtpa17_raw)
   ) %>%
-  mutate(across(
-    c(starts_with("ecoactdtma"), starts_with("ecoactdtpa")),
-    ~ factor(
-      .x,
-      levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, -1, -2, -3, -8, -9),
-      labels = c(
-        "FT paid work",
-        "PT paid work",
-        "Unemployed",
-        "Training",
-        "Education",
-        "Looking after home/family",
-        "Retired from work altogether",
-        "Sick/disabled",
-        "Other",
-        "Item not applicable",
-        "Script error/information lost",
-        "Not asked at the fieldwork stage/participated/interviewed",
-        "Don’t know/insufficient information",
-        "Refusal"
+  mutate(
+    across(
+      c(starts_with("ecoactdt") & !ends_with("raw")),
+      ~ labelled(
+        .x,
+        labels = c(
+          "FT paid work" = 1,
+          "PT paid work" = 2,
+          "Unemployed" = 3,
+          "Training" = 4,
+          "Education" = 5,
+          "Looking after home/family" = 6,
+          "Retired from work altogether" = 7,
+          "Sick/disabled" = 8,
+          "Other" = 9,
+          common_missing_labels
+        )
       )
     )
-  )) %>%
+  )
+
+# Checks
+
+ecoactDT_names <- ecoactDT_parents_rec %>%
+  dplyr::select(!ends_with("raw"), -NSID) %>%
+  names()
+
+ecoactDT_pairs <- tibble(
+  y = ecoactDT_names,
+  x = str_c(ecoactDT_names, "_raw")
+)
+
+make_crosstab <- function(data, x, y) {
+  data |>
+    count(
+      across(all_of(c(x, y))),
+      name = "n"
+    )
+}
+
+ecoactDT_crosstabs <- ecoactDT_pairs |>
+  mutate(
+    crosstab = map2(
+      x,
+      y,
+      ~ make_crosstab(ecoactDT_parents_rec, .x, .y)
+    )
+  )
+
+ecoactDT_crosstabs %>%
+  pull(crosstab)
+
+# Extract variables
+ecoact_all <- ecoactDT_parents_rec %>%
   select(NSID, starts_with("ecoactdtma"), starts_with("ecoactdtpa"))
 
 # NS-SEC Own --------------------------------------------------------------------
-# Load NS-SEC variables from relevant sweeps
+
+# Import NS-SEC variables from relevant sweeps
 nssec_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>% select(NSID),
   S4 = ns_data[["S4youngperson"]] %>%
@@ -253,115 +303,195 @@ nssec_vars <- list(
 )
 
 # Merge all NS-SEC variables by NSID
-nssec_all <- reduce(nssec_vars, full_join, by = "NSID")
+nssec_all <- reduce(nssec_vars, full_join, by = "NSID") %>%
+  # Add '_raw' suffix to all 'nssec*' variable names for simpler re-coding & cross-checks
+  rename_with(
+    ~ stringr::str_c(.x, "_raw"),
+    contains("nssec")
+  )
+
+## Fix source variable labels --------------------------------------------------------------------
+
+# This is done for simpler validation.
+nssec_s4_s5_s6_s7_missing <- c(
+  `YP Not interviewed` = -99,
+  `Not applicable` = -91
+)
+
+nssec_s8_missing <- c(
+  `Refused` = -9,
+  `Insufficient information` = -8,
+  `Not applicable` = -1
+)
+
+nssec_labels_core <- c(
+  `Employers in large organisations` = 1,
+  `Higher managerial occupations` = 2,
+  `Higher professional traditional employee` = 3.1,
+  `Higher professional new employee` = 3.2,
+  `Higher professional traditional self emp` = 3.3,
+  `Higher professional new self emp` = 3.4,
+  `Lower professional traditional employee` = 4.1,
+  `Lower professional new employee` = 4.2,
+  `Lower professional traditional self emp` = 4.3,
+  `Lower professional new self emp` = 4.4,
+  `Lower managerial occupations` = 5,
+  `Higher supervisory occupations` = 6,
+  `Intermediate clerical and administrative` = 7.1,
+  `Intermediate sales and service` = 7.2,
+  `Intermediate technical and auxiliary` = 7.3,
+  `Intermediate engineering` = 7.4,
+  `Employers in small orgs non-professional` = 8.1,
+  `Employers in small orgs agriculture` = 8.2,
+  `Own account workers non professional` = 9.1,
+  `Own account workers agriculture` = 9.2,
+  `Lower supervisory occupations` = 10,
+  `Lower technical craft` = 11.1,
+  `Lower technical process operative` = 11.2,
+  `Semi routine sales` = 12.1,
+  `Semi routine services` = 12.2,
+  `Semi routine technical` = 12.3,
+  `Semi routine operative` = 12.4,
+  `Semi routine agricultural` = 12.5,
+  `Semi routine clerical` = 12.6,
+  `Semi routine childcare` = 12.7,
+  `Routine sales and service` = 13.1,
+  `Routine production` = 13.2,
+  `Routine technical` = 13.3,
+  `Routine operative` = 13.4,
+  `Routine agricultural` = 13.5,
+  `Never worked` = 14.1,
+  `Long-term unemployed` = 14.2,
+  `Not working` = 14.3,
+  `Full-time students` = 15,
+  `Not classified or inadequately stated` = 16,
+  `Not classifiable for other reasons` = 17
+)
+
+# Apply common labels & sweep-specific features
+nssec_all <- nssec_all %>%
+  mutate(
+    # Sweeps with common labels
+    across(
+      c(nssec17_raw, nssec18_raw, nssec19_raw, nssec20_raw),
+      ~ labelled(.x, labels = c(nssec_s4_s5_s6_s7_missing, nssec_labels_core))
+    ),
+    # S8: Same occupation labels & values, different missing values
+    nssec25_raw = labelled(
+      nssec25_raw,
+      labels = c(nssec_s8_missing, nssec_labels_core)
+    )
+  )
+
+## Recode --------------------------------------------------------------------
 
 # Harmonise NS-SEC values and derive categories
-nssec_all <- nssec_all %>%
+nssec_rec <- nssec_all %>%
   mutate(
     ## Sweep 4 (age 17)
     nssec17 = case_when(
-      is.na(nssec17) ~ -3,
-      floor(nssec17) %in% 1:17 ~ floor(nssec17),
-      nssec17 == -91 ~ -1,
-      nssec17 == -99 ~ -3,
+      is.na(nssec17_raw) ~ -3,
+      floor(nssec17_raw) %in% 1:17 ~ floor(nssec17_raw),
+      nssec17_raw == -91 ~ -1,
+      nssec17_raw == -99 ~ -3,
       TRUE ~ -3
     ),
     ## Sweep 5 (age 18)
     nssec18 = case_when(
-      is.na(nssec18) ~ -3,
-      floor(nssec18) %in% 1:17 ~ floor(nssec18),
-      nssec18 == -91 ~ -1,
-      nssec18 == -99 ~ -3,
+      is.na(nssec18_raw) ~ -3,
+      floor(nssec18_raw) %in% 1:17 ~ floor(nssec18_raw),
+      nssec18_raw == -91 ~ -1,
+      nssec18_raw == -99 ~ -3,
       TRUE ~ -3
     ),
     ## Sweep 6 (age 19)
     nssec19 = case_when(
-      is.na(nssec19) ~ -3,
-      floor(nssec19) %in% 1:17 ~ floor(nssec19),
-      nssec19 == -91 ~ -1,
-      nssec19 == -99 ~ -3,
+      is.na(nssec19_raw) ~ -3,
+      floor(nssec19_raw) %in% 1:17 ~ floor(nssec19_raw),
+      nssec19_raw == -91 ~ -1,
+      nssec19_raw == -99 ~ -3,
       TRUE ~ -3
     ),
     ## Sweep 7 (age 20)
     nssec20 = case_when(
-      is.na(nssec20) ~ -3,
-      floor(nssec20) %in% 1:17 ~ floor(nssec20),
-      nssec20 == -91 ~ -1,
-      nssec20 == -99 ~ -3,
+      is.na(nssec20_raw) ~ -3,
+      floor(nssec20_raw) %in% 1:17 ~ floor(nssec20_raw),
+      nssec20_raw == -91 ~ -1,
+      nssec20_raw == -99 ~ -3,
       TRUE ~ -3
     ),
     ## Sweep 8 (age 25)
     nssec25 = case_when(
-      is.na(nssec25) ~ -3,
-      floor(nssec25) %in% 1:14 ~ floor(nssec25),
+      is.na(nssec25_raw) ~ -3,
+      floor(nssec25_raw) %in% 1:14 ~ floor(nssec25_raw),
       ecoactadu25 == 5 ~ 15, # full-time student
-      nssec25 == -9 ~ -9,
-      nssec25 == -8 ~ -8,
-      nssec25 == -1 ~ -1,
+      nssec25_raw == -9 ~ -9,
+      nssec25_raw == -8 ~ -8,
+      nssec25_raw == -1 ~ -1,
     ),
     ## Sweep 9 (age 32)
     nssec32 = case_when(
-      is.na(nssec32) ~ -3,
-      nssec32 %in% 1:17 ~ nssec32,
-      nssec32 == -9 ~ -9,
-      nssec32 == -8 ~ -8,
-      nssec32 == -1 ~ -1
+      is.na(nssec32_raw) ~ -3,
+      nssec32_raw %in% 1:17 ~ nssec32_raw,
+      nssec32_raw == -9 ~ -9,
+      nssec32_raw == -8 ~ -8,
+      nssec32_raw == -1 ~ -1
     )
   ) %>%
-  mutate(across(
-    starts_with("nssec"),
-    ~ factor(
-      .x,
-      levels = c(
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12,
-        13,
-        14,
-        15,
-        16,
-        17,
-        -1,
-        -2,
-        -3,
-        -8,
-        -9
-      ),
-      labels = c(
-        "Employers in large organisations",
-        "Higher managerial and administrative occupations",
-        "Higher professional occupations",
-        "Lower professional and higher technical occupations",
-        "Lower managerial and administrative occupations",
-        "Higher supervisory occupations",
-        "Intermediate occupations",
-        "Employers in small establishments",
-        "Own account workers",
-        "Lower supervisory occupations",
-        "Lower technical occupations",
-        "Semi-routine occupations",
-        "Routine occupations",
-        "Never worked and long-term unemployed",
-        "Full-time student",
-        "Not classified or inadequately stated",
-        "Not classifiable for other reasons",
-        "Item not applicable",
-        "Script error/information lost",
-        "Not asked at the fieldwork stage/participated/interviewed",
-        "Don’t know/insufficient information",
-        "Refusal"
+  mutate(
+    across(
+      starts_with("nssec") & !ends_with("raw"),
+      ~ labelled(
+        .x,
+        labels = c(
+          "Employers in large organisations" = 1,
+          "Higher managerial and administrative occupations" = 2,
+          "Higher professional occupations" = 3,
+          "Lower professional and higher technical occupations" = 4,
+          "Lower managerial and administrative occupations" = 5,
+          "Higher supervisory occupations" = 6,
+          "Intermediate occupations" = 7,
+          "Employers in small establishments" = 8,
+          "Own account workers" = 9,
+          "Lower supervisory occupations" = 10,
+          "Lower technical occupations" = 11,
+          "Semi-routine occupations" = 12,
+          "Routine occupations" = 13,
+          "Never worked and long-term unemployed" = 14,
+          "Full-time student" = 15,
+          "Not classified or inadequately stated" = 16,
+          "Not classifiable for other reasons" = 17,
+          common_missing_labels
+        )
       )
     )
-  )) %>%
+  )
+
+## Checks --------------------------------------------------------------------
+
+nssec_names <- nssec_rec %>%
+  dplyr::select(starts_with("nssec") & !ends_with("raw")) %>%
+  names()
+
+nssec_pairs <- tibble(
+  y = nssec_names,
+  x = str_c(nssec_names, "_raw")
+)
+
+nssec_crosstabs <- nssec_pairs |>
+  mutate(
+    crosstab = map2(
+      x,
+      y,
+      ~ make_crosstab(nssec_rec, .x, .y)
+    )
+  )
+
+nssec_crosstabs %>%
+  pull(crosstab) %>%
+  purrr::walk(~ print(.x, n = Inf))
+
+nssec_all <- nssec_rec %>%
   select(NSID, nssec17, nssec18, nssec19, nssec20, nssec25, nssec32)
 
 # NS-SEC Parents --------------------------------------------------------------------
