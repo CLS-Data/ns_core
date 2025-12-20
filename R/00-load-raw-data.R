@@ -1,9 +1,11 @@
 # Packages
+library(tidyverse) # for data manipulation
 library(haven) # for reading Stata files
-library(dplyr) # for data manipulation
-library(purrr) # for functional programming (map, reduce)
 library(here) # for file paths
 library(labelled) # for handling labelled data
+
+# Source helpers
+source(here::here("R", "helpers.R"))
 
 # Set folder path
 data_path <- here(
@@ -40,3 +42,23 @@ sweeps <- list(
 
 # Load all datasets
 ns_data <- map(sweeps, ~ read_dta(file.path(data_path, .x)))
+
+# Missing value labels (re-used across all variables & scripts)
+common_missing_labels <- c(
+  "Item not applicable" = -1L,
+  "Script error/information lost" = -2L,
+  "Not asked at the fieldwork stage/did not participate at specific wave/was not surveyed" = -3L,
+  "Data not available" = -5L,
+  "Prefer not to say" = -7L,
+  "Don’t know/insufficient information" = -8L,
+  "Refusal" = -9L
+)
+
+# Re-coding via look up tables
+val_table <- function(x) {
+  labs <- labelled::val_labels(x)
+  tibble(
+    old_value = unname(labs),
+    old_label = names(labs)
+  )
+}
