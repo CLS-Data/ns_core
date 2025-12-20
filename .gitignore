@@ -25,6 +25,9 @@ cache/
 *.html
 /README_files/
 
+# Positron
+*.toml
+
 # Sensitive data & derived datasets
 *.csv
 *.xlsx
