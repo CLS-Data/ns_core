@@ -307,7 +307,7 @@ sexuality_all <- sexuality_all %>%
       sori20 == 2 ~ 2,
       sori20 == 3 ~ 3,
       sori20 == 4 ~ 4,
-      sori20 == -3 ~ -3, # Check: 100 stands for 'Respondent declined sexual experience Qs', -97: Refused self-completion, this maps them onto 'Not asked (...)' instead of 'Refused'
+      sori20 == -3 ~ -3,
       sori20 %in% c(-92, -9, -100, -97) ~ -9,
       sori20 %in% c(-1, -8) ~ -8,
       sori20 == -91 ~ -1, # Not applicable
