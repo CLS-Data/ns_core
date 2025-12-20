@@ -145,6 +145,22 @@ derived_all <- derived_all %>%
     )
   )
 
+# Where a variable is labelled, append -5 to the labels
+derived_all <- derived_all |>
+  dplyr::mutate(
+    dplyr::across(
+      dplyr::where(haven::is.labelled),
+      ~ {
+        # Only touch variables that actually contain -5
+        if (any(.x == -5L, na.rm = TRUE)) {
+          labelled::add_value_labels(.x, "Data not available" = -5L)
+        } else {
+          .x
+        }
+      }
+    )
+  )
+
 # set multiple labels at once; returns the modified data frame
 derived_all <- set_variable_labels(
   derived_all,

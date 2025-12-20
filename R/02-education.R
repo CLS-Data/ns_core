@@ -1,3 +1,12 @@
+# Prerequisite: 00-load-raw-data.R (this script also sources helpers.R)
+#
+# If you are running this script on its own, please run the following first
+# from the project root:
+#
+# source(here::here("R", "00-load-raw-data.R"))
+#
+# or manually run 00-load-raw-data.R before this script.
+
 # Own current qualification studied (educaim) --------------------------------------------------------------------
 
 # Current qualification studied indicates which qualification a cohort member is currently pursuing.
@@ -288,7 +297,7 @@ educaim_rec_s8_s9 <- educaim_rec_s8_s9 %>%
   )
 
 # Extract derived variables
-education_all <- educaim_rec_s8_s9 %>%
+educaim_all <- educaim_rec_s8_s9 %>%
   select(NSID, educaim17, educaim19, educaim20, educaim25, educaim32)
 
 # Education Own --------------------------------------------------------------------

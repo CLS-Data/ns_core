@@ -1,3 +1,12 @@
+# Prerequisite: 00-load-raw-data.R (this script also sources helpers.R)
+#
+# If you are running this script on its own, please run the following first
+# from the project root:
+#
+# source(here::here("R", "00-load-raw-data.R"))
+#
+# or manually run 00-load-raw-data.R before this script.
+
 # Sex --------------------------------------------------------------------
 
 # Load sex variables from relevant sweeps
@@ -410,7 +419,7 @@ partnr_all <- partnr_all |>
     partnradu32 = recode_labelled_by_labels(
       partnradu32_orig,
       partnradu32_lookup,
-      na_to = -3, 
+      na_to = -3,
       na_label = "Not asked at the fieldwork stage/participated/interviewed"
     )
   )
@@ -463,11 +472,11 @@ partnr_all <- partnr_all |>
       partnr19_orig,
       partnr19_simple_lookup,
       na_to = -3,
-      na_label = "Not asked at the fieldwork stage/participated/interviewed" 
+      na_label = "Not asked at the fieldwork stage/participated/interviewed"
     ),
     partnr25 = recode_labelled_by_labels(
       partnradu25,
-      partnr_simple_lookup, 
+      partnr_simple_lookup,
       unmatched = "keep", # Keep any unmatched values & their labels, called to preserve -3 for NAs
       na_to = -3,
       na_label = "Not asked at the fieldwork stage/participated/interviewed"
@@ -475,7 +484,7 @@ partnr_all <- partnr_all |>
     partnr32 = recode_labelled_by_labels(
       partnradu32,
       partnr_simple_lookup,
-      unmatched = "keep", 
+      unmatched = "keep",
       na_to = -3,
       na_label = "Not asked at the fieldwork stage/participated/interviewed"
     )
@@ -538,16 +547,17 @@ region_all <- region_all %>%
 
   mutate(
     across(
-    c(regor25, regor32),
-    ~ case_when(
-      .x %in% 1:12 ~ .x,
-      .x == 13 ~ -2, # faulty location
-      .x == -9 ~ -9, # refused
-      .x == -8 ~ -8, # don't know
-      .x == -1 ~ -1, # not applicable
-      TRUE ~ -3 # not participated
+      c(regor25, regor32),
+      ~ case_when(
+        .x %in% 1:12 ~ .x,
+        .x == 13 ~ -2, # faulty location
+        .x == -9 ~ -9, # refused
+        .x == -8 ~ -8, # don't know
+        .x == -1 ~ -1, # not applicable
+        TRUE ~ -3 # not participated
+      )
     )
-  )) %>%
+  ) %>%
 
   mutate(
     regint32 = case_when(

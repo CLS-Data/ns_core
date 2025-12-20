@@ -1,3 +1,12 @@
+# Prerequisite: 00-load-raw-data.R (this script also sources helpers.R)
+#
+# If you are running this script on its own, please run the following first
+# from the project root:
+#
+# source(here::here("R", "00-load-raw-data.R"))
+#
+# or manually run 00-load-raw-data.R before this script.
+
 # Economic Activity --------------------------------------------------------------------
 
 ecoact_vars <- list(
@@ -280,7 +289,7 @@ ecoactDT_crosstabs %>%
   pull(crosstab)
 
 # Extract variables
-ecoact_all <- ecoactDT_parents_rec %>%
+ecoactDT_parents_all <- ecoactDT_parents_rec %>%
   select(NSID, starts_with("ecoactdtma"), starts_with("ecoactdtpa"))
 
 # NS-SEC Own --------------------------------------------------------------------
