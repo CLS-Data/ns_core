@@ -7,9 +7,11 @@
 #
 # or manually run 00-load-raw-data.R before this script.
 
-# Current Aim Education Own --------------------------------------------------------------------
+# Own current qualification studied (educaim) --------------------------------------------------------------------
 
-# Load education variables from relevant sweeps
+# Current qualification studied indicates which qualification a cohort member is currently pursuing.
+
+# Import education variables from relevant sweeps
 educaim_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>%
     select(NSID),
@@ -28,8 +30,25 @@ educaim_vars <- list(
 # Merge by ID
 educaim_all <- reduce(educaim_vars, full_join, by = "NSID")
 
-# recode missing valuse and response categories
-educaim_all <- educaim_all %>%
+# Define target values and their labels
+educaim_labels <- c(
+  "NVQ 4-5" = 0L,
+  "NVQ 1-3" = 1L,
+  "None/entry" = 2L,
+  "Other" = 3L,
+  "None of these qualifications" = 4L,
+  "Not studying" = 5L,
+  "Item not applicable" = -1L,
+  "Script error/information lost" = -2L,
+  "Not asked at the fieldwork stage/participated/interviewed" = -3L,
+  "Don't know/insufficient information" = -8L,
+  "Refusal" = -9L
+)
+
+## Sweeps 4, 6, 7  --------------------------------------------------------------------
+
+# Recode missing values and response categories
+educaim_rec_s4_s6_s7 <- educaim_all %>%
   mutate(
     # Sweep 4
     educaim17 = case_when(
@@ -45,12 +64,10 @@ educaim_all <- educaim_all %>%
     # Sweep 6
     educaim19 = case_when(
       educaim19_raw %in% 1:4 ~ 0,
-      educaim19_raw %in% 5:12 ~ 1,
+      educaim19_raw %in% 5:13 ~ 1,
       educaim19_raw == 14 ~ 3,
       educaim19_raw == 15 ~ 4,
       educaim19_raw == 16 ~ 5,
-      educaim19_raw == -94 ~ -2,
-      educaim19_raw == -91 ~ -1,
       TRUE ~ -3
     ),
 
@@ -59,137 +76,229 @@ educaim_all <- educaim_all %>%
       educaim20_raw %in% 10:13 ~ 0,
       educaim20_raw %in% 1:9 ~ 1,
       educaim20_raw == 14 ~ 3,
-      educaim20_raw == -94 ~ -2,
+      educaim20_raw == -94 ~ -8,
       educaim20_raw == -91 ~ 5,
       TRUE ~ -3
     )
   ) %>%
-
-  # Sweep 8
+  # Add value labels
   mutate(
-    educaim25 = case_when(
-      W8ACTIVITY05 == 0 ~ 5, #not studying
-      W8ACQUC0A == 1 |
-        W8ACQUC0B == 1 |
-        W8ACQUC0C == 1 |
-        W8ACQUC0D == 1 |
-        W8ACQUC0E == 1 |
-        W8VCQUC0J == 1 |
-        W8VCQUC0K == 1 ~ 0,
-      W8ACQUC0F == 1 |
-        W8ACQUC0G == 1 |
-        W8ACQUC0H == 1 |
-        W8ACQUC0I == 1 |
-        W8ACQUC0J == 1 |
-        W8ACQUC0K == 1 |
-        W8ACQUC0L == 1 |
-        W8ACQUC0M == 1 |
-        W8VCQUC0A == 1 |
-        W8VCQUC0B == 1 |
-        W8VCQUC0C == 1 |
-        W8VCQUC0E == 1 |
-        W8VCQUC0F == 1 |
-        W8VCQUC0G == 1 |
-        W8VCQUC0H == 1 |
-        W8VCQUC0I == 1 |
-        W8VCQUC0L == 1 |
-        W8VCQUC0M == 1 |
-        W8VCQUC0N == 1 ~ 1,
-      W8VCQUC0D == 1 | W8VCQUC0P == 1 ~ 2,
-      W8ACQUC0N == 1 |
-        W8VCQUC0O == 1 ~ 3,
-      W8ACQUC0O == 1 |
-        W8ACQUC0P == 1 ~ 4,
-      W8ACQUC0Q == 1 |
-        W8VCQUC0R == 1 ~ -9,
-      W8ACQUC0P == 1 |
-        W8VCQUC0Q == 1 ~ -8,
-      TRUE ~ -3
-    ),
+    across(
+      c(educaim17, educaim19, educaim20),
+      ~ labelled(.x, labels = educaim_labels)
+    )
+  )
 
-    # Sweep 9
-    educaim32 = case_when(
-      W9ECONACT2 == -91 ~ -8,
-      W9ECONACT2 != 6 & W9ECONACT2 != 7 ~ 5, # not studying
-      W9ACQUC0A == 1 |
-        W9ACQUC0B == 1 |
-        W9ACQUC0C == 1 |
-        W9ACQUC0D == 1 |
-        W9ACQUC0E == 1 |
-        W9ACQUC0F == 1 |
-        W9VCQUC0A == 1 |
-        W9VCQUC0B == 1 |
-        W9VCQUC0C == 1 |
-        W9VCQUC0S == 1 |
-        W9VCQUC0V == 1 |
-        W9VCQUCAC == 1 ~ 0,
-      W9ACQUC0G == 1 |
-        W9ACQUC0H == 1 |
-        W9ACQUC0I == 1 |
-        W9ACQUC0J == 1 |
-        W9ACQUC0K == 1 |
-        W9ACQUC0L == 1 |
-        W9ACQUC0M == 1 |
-        W9ACQUC0O == 1 |
-        W9ACQUC0P == 1 |
-        W9ACQUC0Q == 1 |
-        W9VCQUC0D == 1 |
-        W9VCQUC0E == 1 |
-        W9VCQUC0F == 1 |
-        W9VCQUC0G == 1 |
-        W9VCQUC0H == 1 |
-        W9VCQUC0I == 1 |
-        W9VCQUC0L == 1 |
-        W9VCQUC0M == 1 |
-        W9VCQUC0N == 1 |
-        W9VCQUC0O == 1 |
-        W9VCQUC0P == 1 |
-        W9VCQUC0Q == 1 |
-        W9VCQUC0R == 1 |
-        W9VCQUC0T == 1 |
-        W9VCQUC0U == 1 |
-        W9VCQUC0W == 1 |
-        W9VCQUC0X == 1 |
-        W9VCQUC0Y == 1 |
-        W9VCQUC0Z == 1 |
-        W9VCQUCAA == 1 |
-        W9VCQUCAB == 1 |
-        W9VCQUCAD == 1 |
-        W9VCQUCAE == 1 ~ 1,
-      W9ACQUC0N == 1 ~ 2,
-      W9ACQUC0R == 1 |
-        W9VCQUCAF == 1 ~ 3,
-      W9ACQUC0S == 1 |
-        W9VCQUCAG == 1 ~ 4,
-      W9ACQUC0T == 1 |
-        W9VCQUCAH == 1 ~ -8,
-      W9ACQUC0U == 1 |
-        W9VCQUCAI == 1 ~ -9,
-      TRUE ~ -3
+## Checks
+educaim_rec_s4_s6_s7 %>%
+  count(educaim17_raw, educaim17)
+
+educaim_rec_s4_s6_s7 %>%
+  count(educaim19_raw, educaim19)
+
+educaim_rec_s4_s6_s7 %>%
+  count(educaim20_raw, educaim20)
+
+## Sweeps 8 and 9 --------------------------------------------------------------------
+
+# S8 and S9 include a variable per each qualification option that is currently being pursued.
+# These will be collapsed into a single variable, which indicates the highest qualification currently pursued.
+
+### 1. Define variable groups ###
+
+## Note: 'Not studying' will be derived in the next step.
+
+## Groups for S8
+educaim_groups_s8 <- list(
+  nvq45 = c(
+    "W8ACQUC0A",
+    "W8ACQUC0B",
+    "W8ACQUC0C",
+    "W8ACQUC0D",
+    "W8ACQUC0E",
+    "W8VCQUC0J",
+    "W8VCQUC0K"
+  ),
+  nvq13 = c(
+    "W8ACQUC0F",
+    "W8ACQUC0G",
+    "W8ACQUC0H",
+    "W8ACQUC0I",
+    "W8ACQUC0J",
+    "W8ACQUC0K",
+    "W8ACQUC0L",
+    "W8ACQUC0M",
+    "W8VCQUC0A",
+    "W8VCQUC0B",
+    "W8VCQUC0C",
+    "W8VCQUC0E",
+    "W8VCQUC0F",
+    "W8VCQUC0G",
+    "W8VCQUC0H",
+    "W8VCQUC0I",
+    "W8VCQUC0L",
+    "W8VCQUC0M",
+    "W8VCQUC0N"
+  ),
+  entry_none = c("W8VCQUC0D"),
+  other = c("W8ACQUC0N", "W8VCQUC0O"),
+  none_of_these = c("W8ACQUC0O", "W8VCQUC0P"),
+  dont_know = c("W8ACQUC0P", "W8VCQUC0Q"),
+  refusal = c("W8ACQUC0Q", "W8VCQUC0R")
+)
+
+## Check if original S8 variable labels match targets
+s8_map <- make_group_map(ns_data[["S8maininterview"]], educaim_groups_s8)
+print(s8_map, n = Inf)
+
+## Groups for S9
+educaim_groups_s9 <- list(
+  nvq45 = c(
+    "W9ACQUC0A",
+    "W9ACQUC0B",
+    "W9ACQUC0C",
+    "W9ACQUC0D",
+    "W9ACQUC0E",
+    "W9ACQUC0F",
+    "W9VCQUC0A",
+    "W9VCQUC0B",
+    "W9VCQUC0C",
+    "W9VCQUC0S",
+    "W9VCQUC0V",
+    "W9VCQUCAC"
+  ),
+  nvq13 = c(
+    "W9ACQUC0G",
+    "W9ACQUC0H",
+    "W9ACQUC0I",
+    "W9ACQUC0J",
+    "W9ACQUC0K",
+    "W9ACQUC0L",
+    "W9ACQUC0M",
+    "W9ACQUC0O",
+    "W9ACQUC0P",
+    "W9ACQUC0Q",
+    "W9VCQUC0D",
+    "W9VCQUC0E",
+    "W9VCQUC0F",
+    "W9VCQUC0G",
+    "W9VCQUC0H",
+    "W9VCQUC0I",
+    "W9VCQUC0L",
+    "W9VCQUC0M",
+    "W9VCQUC0N",
+    "W9VCQUC0O",
+    "W9VCQUC0P",
+    "W9VCQUC0Q",
+    "W9VCQUC0R",
+    "W9VCQUC0T",
+    "W9VCQUC0U",
+    "W9VCQUC0W",
+    "W9VCQUC0X",
+    "W9VCQUC0Y",
+    "W9VCQUC0Z",
+    "W9VCQUCAA",
+    "W9VCQUCAB",
+    "W9VCQUCAD",
+    "W9VCQUCAE"
+  ),
+  entry_none = c("W9ACQUC0N"),
+  other = c("W9ACQUC0R", "W9VCQUCAF"),
+  none_of_these = c("W9ACQUC0S", "W9VCQUCAG"),
+  dont_know = c("W9ACQUC0T", "W9VCQUCAH"),
+  refusal = c("W9ACQUC0U", "W9VCQUCAI")
+)
+
+## Check if original S9 variable labels match targets
+s9_map <- make_group_map(ns_data[["S9maininterview"]], educaim_groups_s9)
+print(s9_map, n = Inf)
+
+### 2. Derive helpers ###
+
+# Function: Return TRUE if a person responded 'yes' (1) to any of the variables (qualifications)
+has_any_tick <- function(vars) {
+  dplyr::if_any(dplyr::all_of(vars), ~ .x == 1)
+}
+
+# This code will derive each qualification category as a separate TRUE/FALSE helper.
+educaim_rec_s8_s9 <- educaim_rec_s4_s6_s7 %>%
+  # Sweep 8 (age 25): activity-derived flags, plus tick-box flags
+  # Activity derived flags: This uses derived variable 'Current activity: Education: School/College/University',
+  # Which indicates whether a person is currently studying (1) or no (0).
+  dplyr::mutate(
+    s8_not_studying = W8ACTIVITY05 == 0,
+    s8_not_applicable_from_activity = W8ACTIVITY05 == -1,
+    s8_not_asked_from_activity = W8ACTIVITY05 == -3,
+    s8_dk_from_activity = W8ACTIVITY05 == -8,
+    s8_refusal_from_activity = W8ACTIVITY05 == -9,
+    s8_has_nvq45 = has_any_tick(educaim_groups_s8$nvq45),
+    s8_has_nvq13 = has_any_tick(educaim_groups_s8$nvq13),
+    s8_has_entry_none = has_any_tick(educaim_groups_s8$entry_none),
+    s8_has_other = has_any_tick(educaim_groups_s8$other),
+    s8_has_none_of_these = has_any_tick(educaim_groups_s8$none_of_these),
+    s8_dk = has_any_tick(educaim_groups_s8$dont_know),
+    s8_refusal = has_any_tick(educaim_groups_s8$refusal)
+  ) |>
+  # Sweep 9 (age 32): econ-derived flags, plus tick-box flags
+  # Econ derived flags: This uses derived variable 'Current economic activity (Derived)'.
+  # This is used to identify those not studying, which is confirmed if:
+  # 1) W9ECONACT2 is not missing.
+  # 2) W9ECONACT2 is not 6 (In time edu) or 7 (In part-time edu)
+  dplyr::mutate(
+    s9_not_studying = W9ECONACT2 %in% c(1:5, 8:14),
+    s9_not_applicable_from_econ = W9ECONACT2 == -1,
+    s9_not_asked_from_econ = W9ECONACT2 == -3,
+    s9_dk_from_econ = W9ECONACT2 == -8,
+    s9_refusal_from_econ = W9ECONACT2 == -9,
+    s9_has_nvq45 = has_any_tick(educaim_groups_s9$nvq45),
+    s9_has_nvq13 = has_any_tick(educaim_groups_s9$nvq13),
+    s9_has_entry_none = has_any_tick(educaim_groups_s9$entry_none),
+    s9_has_other = has_any_tick(educaim_groups_s9$other),
+    s9_has_none_of_these = has_any_tick(educaim_groups_s9$none_of_these),
+    s9_dk = has_any_tick(educaim_groups_s9$dont_know),
+    s9_refusal = has_any_tick(educaim_groups_s9$refusal)
+  )
+
+### 3. Collapse helpers into derived categories ###
+educaim_rec_s8_s9 <- educaim_rec_s8_s9 %>%
+  mutate(
+    educaim25 = dplyr::case_when(
+      s8_not_studying ~ 5L,
+      s8_has_nvq45 ~ 0L,
+      s8_has_nvq13 ~ 1L,
+      s8_has_entry_none ~ 2L,
+      s8_has_other ~ 3L,
+      s8_has_none_of_these ~ 4L,
+      s8_not_applicable_from_activity ~ -1L,
+      s8_not_asked_from_activity ~ -3L,
+      s8_dk | s8_dk_from_activity ~ -8L,
+      s8_refusal | s8_refusal_from_activity ~ -9L,
+      .default = -3L
+    ),
+    educaim32 = dplyr::case_when(
+      s9_not_studying ~ 5L,
+      s9_has_nvq45 ~ 0L,
+      s9_has_nvq13 ~ 1L,
+      s9_has_entry_none ~ 2L,
+      s9_has_other ~ 3L,
+      s9_has_none_of_these ~ 4L,
+      s9_not_applicable_from_econ ~ -1L,
+      s9_not_asked_from_econ ~ -3L,
+      s9_dk | s9_dk_from_econ ~ -8L,
+      s9_refusal | s9_refusal_from_econ ~ -9L,
+      .default = -3L
     )
   ) %>%
-  mutate(across(
-    c(educaim17, educaim19, educaim20, educaim25, educaim32),
-    ~ factor(
-      .x,
-      levels = c(0, 1, 2, 3, 4, 5, -1, -2, -3, -8, -9),
-      labels = c(
-        "NVQ 4-5",
-        "NVQ 1-3",
-        "None/entry",
-        "Other",
-        "None of these qualifications",
-        "Not studying",
-        "Item not applicable",
-        "Script error/information lost",
-        "Not asked at the fieldwork stage/participated/interviewed",
-        "Don’t know/insufficient information",
-        "Refusal"
-      )
+  dplyr::mutate(
+    dplyr::across(
+      c(educaim25, educaim32),
+      ~ labelled::labelled(.x, labels = educaim_labels)
     )
-  )) %>%
-  select(NSID, educaim17, educaim19, educaim20, educaim25, educaim32)
+  )
 
+# Extract derived variables
+educaim_all <- educaim_rec_s8_s9 %>%
+  select(NSID, educaim17, educaim19, educaim20, educaim25, educaim32)
 
 # Education Own --------------------------------------------------------------------
 # Load education variables from relevant sweeps
@@ -212,7 +321,7 @@ educ_vars <- list(
 educ_all <- reduce(educ_vars, full_join, by = "NSID")
 
 # recode missing valuse and response categories
-educ_all <- educ_all %>%
+educ_all_rec <- educ_all %>%
   # Sweep 8
   mutate(
     educ25 = case_when(
@@ -413,11 +522,15 @@ educ_all <- educ_all %>%
         "Refusal"
       )
     )
-  ) %>%
+  )
+
+# Select
+
+educ_all <- educ_all_rec %>%
   select(NSID, educ25, educ32, educadtl32, educvdtl32)
 
-
 # Education Parents --------------------------------------------------------------------
+
 # Load and rename relevant variables from each sweep
 parent_edu_vars <- list(
   S1 = ns_data[["S1familybackground"]] %>%
@@ -433,112 +546,118 @@ parent_edu_all <- reduce(parent_edu_vars, full_join, by = "NSID")
 
 # Recode missing values and response categories
 parent_edu_all <- parent_edu_all %>%
-  mutate(across(
-    matches("educ(ma|pa)_S[1-4]"),
-    ~ case_when(
-      .x == -92 ~ -9,
-      .x == -91 ~ -1,
-      .x %in% c(-98) ~ -3,
-      .x %in% c(-999, -99, -94, 19) ~ -2,
-      TRUE ~ .x
-    )
-  ))
-
-# Step 4: Derive full education and transform to simple education
-parent_edu_all <- parent_edu_all %>%
   mutate(
-    #mother full education (aggregate the information from sweeps 1-4)
+    across(
+      matches("educ(ma|pa)_S[1-4]"),
+      ~ case_when(
+        .x == -92 ~ -9,
+        .x == -91 ~ -1,
+        .x %in% c(-98) ~ -3,
+        .x %in% c(-999, -99, -94) ~ -2,
+        TRUE ~ .x
+      )
+    )
+  )
+
+parent_edu_detailed_labels <- c(
+  "Higher Degree" = 1L,
+  "First degree" = 2L,
+  "HE Diploma" = 3L,
+  "HNC/HND/NVQ4" = 4L,
+  "Teaching qualification, non-degree" = 5L,
+  "Nursing qualification, non-degree" = 6L,
+  "A Levels" = 7L,
+  "OND/ONC" = 8L,
+  "City and guilds part III, NVQ3" = 9L,
+  "CSYS" = 10L,
+  "Scottish Higher Grade" = 11L,
+  "AS Level" = 12L,
+  "Trade apprenticeship" = 13L,
+  "City and guilds part II, NVQ2" = 14L,
+  "GCSE grade A-C and equivalent" = 15L,
+  "GCSE grade D-E and equivalent" = 16L,
+  "City and guilds part I, NVQ1" = 17L,
+  "Youth training, skill seekers" = 18L,
+  "Qualification, level unspecified" = 19L,
+  "No qualification mentioned" = 20L,
+  "Item not applicable" = -1L,
+  "Script error/information lost" = -2L,
+  "Not asked at the fieldwork stage/participated/interviewed" = -3L,
+  "Don't know/insufficient information" = -8L,
+  "Refusal" = -9L
+)
+
+parent_edu_simple_labels <- c(
+  "NVQ 4-5" = 0L,
+  "NVQ 1-3" = 1L,
+  "None/entry" = 2L,
+  "Other" = 3L,
+  "None of these qualifications" = 4L,
+  "Item not applicable" = -1L,
+  "Script error/information lost" = -2L,
+  "Not asked at the fieldwork stage/participated/interviewed" = -3L,
+  "Don't know/insufficient information" = -8L,
+  "Refusal" = -9L
+)
+
+# Derive full education and transform to simple education
+parent_edu_rec <- parent_edu_all %>%
+  mutate(
+    # mother full education (aggregate the information from sweeps 1-4)
     educdtlma = case_when(
-      !is.na(educma_S4) & educma_S4 > 0 ~ educma_S4,
-      !is.na(educma_S2) & educma_S2 > 0 ~ educma_S2,
-      !is.na(educma_S1) & educma_S1 > 0 ~ educma_S1,
-      !is.na(educma_S4) & educma_S4 < 0 ~ educma_S4,
-      !is.na(educma_S2) & educma_S2 < 0 ~ educma_S2,
-      !is.na(educma_S1) & educma_S1 < 0 ~ educma_S1,
-      TRUE ~ -3 # Not interviewed / present
+      educma_S1 > 0 ~ educma_S1,
+      educma_S2 > 0 ~ educma_S2,
+      educma_S4 > 0 ~ educma_S4,
+      educma_S1 < 0 ~ educma_S1,
+      educma_S2 < 0 ~ educma_S2,
+      educma_S4 < 0 ~ educma_S4,
+      .default = -3 # Not interviewed / present
     ),
-    #transform to 3-level education (mother)
+    # transform to 3-level education (mother)
     educma = case_when(
       educdtlma %in% 1:4 ~ 0,
       educdtlma %in% 5:17 ~ 1,
       educdtlma == 18 ~ 2,
       educdtlma == 19 ~ 3, # other
       educdtlma == 20 ~ 4, # none of these qualifications
-      TRUE ~ educdtlma # keep negatives as-is
+      .default = educdtlma # keep negatives as-is
     ),
-    #father full education (aggregate the information from sweeps 1-4)
+    # father full education (aggregate the information from sweeps 1-4)
     educdtlpa = case_when(
-      !is.na(educpa_S1) & educpa_S1 > 0 ~ educpa_S1,
-      !is.na(educpa_S2) & educpa_S2 > 0 ~ educpa_S2,
-      !is.na(educpa_S4) & educpa_S4 > 0 ~ educpa_S4,
-      !is.na(educpa_S1) & educpa_S1 < 0 ~ educpa_S1,
-      !is.na(educpa_S2) & educpa_S2 < 0 ~ educpa_S2,
-      !is.na(educpa_S4) & educpa_S4 < 0 ~ educpa_S4,
-      TRUE ~ -3
+      educpa_S1 > 0 ~ educpa_S1,
+      educpa_S2 > 0 ~ educpa_S2,
+      educpa_S4 > 0 ~ educpa_S4,
+      educpa_S1 < 0 ~ educpa_S1,
+      educpa_S2 < 0 ~ educpa_S2,
+      educpa_S4 < 0 ~ educpa_S4,
+      .default = -3
     ),
-    #transform to 3-level education (father)
+    # transform to 3-level education (father)
     educpa = case_when(
       educdtlpa %in% 1:4 ~ 0,
       educdtlpa %in% 5:17 ~ 1,
       educdtlpa == 18 ~ 2,
       educdtlpa == 19 ~ 3,
       educdtlpa == 20 ~ 4,
-      TRUE ~ educdtlpa # keep negatives as-is
+      .default = educdtlpa # keep negatives as-is
     )
   ) %>%
   mutate(
     across(
       c(educma, educpa),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9),
-        labels = c(
-          "NVQ 4-5",
-          "NVQ 1-3",
-          "None/entry",
-          "Other",
-          "None of these qualifications",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
-        )
+        labels = parent_edu_simple_labels
       )
     ),
     across(
       c(educdtlma, educdtlpa),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(1:20, -1, -2, -3, -8, -9),
-        labels = c(
-          "Higher Degree",
-          "First degree",
-          "HE Diploma",
-          "HNC/HND/NVQ4",
-          "Teaching qualification, non-degree",
-          "Nursing qualification, non-degree",
-          "A Levels",
-          "OND/ONC",
-          "City and guilds part III, NVQ3",
-          "CSYS",
-          "Scottish Higher Grade",
-          "AS Level",
-          "Trade apprenticeship",
-          "City and guilds part II, NVQ2",
-          "GCSE grade A-C and equivalent",
-          "GCSE grade D-E and equivalent",
-          "City and guilds part I, NVQ1",
-          "Youth training, skill seekers",
-          "Qualification, level unspecified",
-          "No qualification mentioned",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
-        )
+        labels = parent_edu_detailed_labels
       )
     )
-  ) %>%
+  )
+
+parent_edu_all <- parent_edu_rec %>%
   select(NSID, educma, educpa, educdtlma, educdtlpa)
