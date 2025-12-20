@@ -1,4 +1,5 @@
 # Source scripts --------------------------------------------------------------------
+
 # This part runs all scripts in the 'R' folder, which process and derive variables for each domain.
 source("R/00-load-raw-data.R", echo = TRUE)
 source("R/01-demographic.R", echo = TRUE)
@@ -9,6 +10,7 @@ source("R/05-anthropometric.R", echo = TRUE)
 source("R/06-behaviour.R", echo = TRUE)
 
 # Longitudinal Dataset --------------------------------------------------------------------
+
 # prepare for the longitudinal dataset by merging all derived variables
 long_vars <- read_dta(file.path(data_path, sweeps$longitudinal)) %>%
   select(
@@ -142,6 +144,22 @@ derived_all <- derived_all %>%
       all_of(new_vars[sapply(derived_all[new_vars], is.factor)]),
       ~ forcats::fct_expand(.x, "Data not available") |>
         tidyr::replace_na("Data not available")
+    )
+  )
+
+# Append -5 label for labelled variables
+derived_all <- derived_all |>
+  dplyr::mutate(
+    dplyr::across(
+      dplyr::where(haven::is.labelled),
+      ~ {
+        # Only touch variables that actually contain -5
+        if (any(.x == -5L, na.rm = TRUE)) {
+          labelled::add_value_labels(.x, "Data not available" = -5L)
+        } else {
+          .x
+        }
+      }
     )
   )
 
