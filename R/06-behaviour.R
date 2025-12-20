@@ -1,38 +1,85 @@
+# Prerequisite: 00-load-raw-data.R (this script also sources helpers.R)
+#
+# If you are running this script on its own, please run the following first
+# from the project root:
+#
+# source(here::here("R", "00-load-raw-data.R"))
+#
+# or manually run 00-load-raw-data.R before this script.
+
 # Smoke --------------------------------------------------------------------
 # Load smoking data from relevant sweeps
 smoking_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>%
-    select(NSID, smknw14 = W1cignowYP, smk14 = W1cigfreqYP),
+    select(NSID, smk14_ever = W1cignowYP, smk14_freq = W1cigfreqYP),
   S2 = ns_data[["S2youngperson"]] %>%
-    select(NSID, smknw15 = W2cignowYP, smk15 = W2cigfreqYP),
+    select(NSID, smk15_ever = W2cignowYP, smk15_freq = W2cigfreqYP),
   S3 = ns_data[["S3youngperson"]] %>%
-    select(NSID, smknw16 = W3cignowYP, smk16 = W3cigfreqYP),
+    select(NSID, smk16_ever = W3cignowYP, smk16_freq = W3cigfreqYP),
   S4 = ns_data[["S4youngperson"]] %>%
     select(NSID),
   S8 = ns_data[["S8selfcompletion"]] %>%
-    select(NSID, smk25 = W8SMOKING),
+    select(NSID, smk25_ever_freq = W8SMOKING),
   S9 = ns_data[["S9maininterview"]] %>%
-    select(NSID, smk32 = W9SMOKING)
+    select(NSID, smk32_ever_freq = W9SMOKING)
 )
 
 # Merge all sweeps
 smoking_all <- reduce(smoking_vars, full_join, by = "NSID")
 
-# Recode smoke ever/frequency
-recode_smk14_16 <- function(x) {
+
+# Merge all sweeps
+# smoking_all <- reduce(smoking_vars, full_join, by = "NSID") %>%
+# Rename all smknw to smk_ever and smk to smk_freq for readability
+#  rename_with(
+#    ~ stringr::str_replace()
+# Add '_raw' suffix to all 'smk*' variable names for simpler re-coding & cross-checks
+#  rename_with(
+#    ~ stringr::str_c(.x, "_raw"),
+#    contains("smk")
+#  )
+
+# Note on smoking variables:
+## In some sweeps, participants were first asked if they ever smoked [smknw_raw variables].
+## If positive, they were then asked how often they smoke(d). [smk_raw variables]
+## This means that if a person did not smoke, they would have frequency as missing ['Not applicable'].
+
+## Standardise values --------------------------------------------------------------------
+
+## The following code will convert missing values and responses to a common coding scheme.
+
+# Recode if ever smoking for age 14-16
+recode_smk_ever_14_16 <- function(x) {
   case_when(
-    x %in% c(1, 2, -91) ~ 0, # Never
-    x == 3 ~ 1, # used to, don’t at all now
-    x %in% c(4, 5) ~ 2, #  smoke cigs occasionally – not every day
-    x == 6 ~ 3, # smoke cigs almost every day
-    x %in% c(-99, -97, -96) ~ -2,
-    x == -92 ~ -9,
+    x == 1 ~ 1, # Yes
+    x == 2 ~ 0, # No
+    x == -96 ~ -3,
+    x %in% c(-92, -97) ~ -9,
+    x == -91 ~ -1,
     x == -1 ~ -8,
+    x == -99 ~ -3, # YP not interviewed
     TRUE ~ -3
   )
 }
 
-recode_smk25_32 <- function(x) {
+# Recode smoking frequency for age 14-16
+recode_smk_freq_14_16 <- function(x) {
+  case_when(
+    x %in% c(1, 2) ~ 0, # Never
+    x == 3 ~ 1, # used to, don’t at all now
+    x %in% c(4, 5) ~ 2, #  smoke cigs occasionally – not every day
+    x == 6 ~ 3, # smoke cigs almost every day
+    x == -91 ~ -1,
+    x == -96 ~ -3,
+    x %in% c(-92, -97) ~ -9,
+    x == -1 ~ -8,
+    x == -99 ~ -3, # YP not interviewed
+    TRUE ~ -3
+  )
+}
+
+# Derive smoking frequency for age 25 and 32
+recode_smk_25_32_to_freq <- function(x) {
   case_when(
     x > 0 ~ x - 1, # Convert 1-4 to 0-3
     x == -9 ~ -9,
@@ -42,20 +89,8 @@ recode_smk25_32 <- function(x) {
   )
 }
 
-# Recode smoke now
-recode_smknw14_16 <- function(x) {
-  case_when(
-    x == 1 ~ 1, # Yes
-    x == 2 ~ 0, # No
-    x %in% c(-99, -97, -96) ~ -2,
-    x == -92 ~ -9,
-    x == -91 ~ -1,
-    x == -1 ~ -8,
-    TRUE ~ -3
-  )
-}
-
-recode_smknw25_32 <- function(x) {
+# Derive binary smoking status for age 25 and 32
+recode_smk_25_32_to_ever <- function(x) {
   case_when(
     x %in% c(0, 1) ~ 0,
     x %in% c(2, 3) ~ 1,
@@ -63,70 +98,151 @@ recode_smknw25_32 <- function(x) {
   )
 }
 
-# Apply recoding
-smoking_all <- smoking_all %>%
+smoking_std <- smoking_all %>%
   mutate(
-    smk14 = recode_smk14_16(smk14),
-    smk15 = recode_smk14_16(smk15),
-    smk16 = recode_smk14_16(smk16),
-    smk25 = recode_smk25_32(smk25),
-    smk32 = recode_smk25_32(smk32)
-  ) %>%
+    # Smoking ever age 14-16
+    across(
+      c(smk14_ever, smk15_ever, smk16_ever),
+      recode_smk_ever_14_16,
+      .names = "{col}_std"
+    ),
+    # Smoking freq age 14-16
+    across(
+      c(smk14_freq, smk15_freq, smk16_freq),
+      recode_smk_freq_14_16,
+      .names = "{col}_std"
+    ),
+    # Smoking freq age 25-32 (derived from combined ever/freq fields)
+    smk25_freq_std = recode_smk_25_32_to_freq(smk25_ever_freq),
+    smk32_freq_std = recode_smk_25_32_to_freq(smk32_ever_freq),
+    # Smoking ever age 25-32 (binary, derived from recoded freq)
+    smk25_ever_std = recode_smk_25_32_to_ever(smk25_freq_std),
+    smk32_ever_std = recode_smk_25_32_to_ever(smk32_freq_std)
+  )
+
+## Derive smoking status variables --------------------------------------------------------------------
+
+# Helpers
+
+# Derive binary current smoking status ages 14-16  ('smknw[age]')
+# A person counts as 'not currently smoking' if either of the following conditions are met:
+# i) indicated not smoking when asked 'Do you ever smoke cigarettes at all?' [EVER questions]
+# ii) indicated they never smoke, they tried smoking only once, or they used to smoke but not anymore [FREQ questions]
+derive_smk_now <- function(ever_var, freq_var) {
+  case_when(
+    ever_var == 0 ~ 0L, # If EVER: 'Not smoking' -> "No"
+    freq_var %in% c(0, 1) ~ 0L, # otherwise if FREQ: 'Never smoked'/'Only once' or 'Used to smoke but never now' -> 'No'
+    ever_var == 1 ~ 1L, # otherwise if EVER: 'Yes' to smoking -> 'Yes'
+    # Missing values:
+    freq_var == -9 | ever_var == -9 ~ -9L, # otherwise: if either refused -> 'Refusal'
+    freq_var == -8 | ever_var == -8 ~ -8L, # otherwise: if either dk/insufficient info -> 'dk/insufficient info'
+    freq_var == -1 | ever_var == -1 ~ -1L, # otherwise: if either not applicable -> not applicable,
+    .default = -3L # everything else defaults to 'not interviewed/asked etc.'
+  )
+}
+
+derive_smk_detailed <- function(ever_var, freq_var) {
+  case_when(
+    freq_var >= 0 ~ as.integer(freq_var),
+    ever_var == 0 ~ 0, # Those who replied 'not ever smoke' -> 'never' (limitation: they were not asked if they never smoked)
+    freq_var == -9 | ever_var == -9 ~ -9L,
+    freq_var == -8 | ever_var == -8 ~ -8L,
+    freq_var == -1 | ever_var == -1 ~ -1L,
+    TRUE ~ -3L
+  )
+}
+
+
+smoking_rec <- smoking_std %>%
   mutate(
-    smknw14 = case_when(
-      smk14 == 0 ~ 0,
-      smknw14 > 0 ~ recode_smknw14_16(smknw14),
-      TRUE ~ recode_smknw14_16(smknw14)
+    # Detailed smoking frequency
+    smk14 = derive_smk_detailed(
+      ever_var = smk14_ever_std,
+      freq_var = smk14_freq_std
     ),
-    smknw15 = case_when(
-      smk15 == 0 ~ 0,
-      smknw15 > 0 ~ recode_smknw14_16(smknw15),
-      TRUE ~ recode_smknw14_16(smknw15)
+    smk15 = derive_smk_detailed(
+      ever_var = smk15_ever_std,
+      freq_var = smk15_freq_std
     ),
-    smknw16 = case_when(
-      smk16 == 0 ~ 0,
-      smknw16 > 0 ~ recode_smknw14_16(smknw16),
-      TRUE ~ recode_smknw14_16(smknw16)
+    smk16 = derive_smk_detailed(
+      ever_var = smk16_ever_std,
+      freq_var = smk16_freq_std
     ),
-    smknw25 = recode_smknw25_32(smk25),
-    smknw32 = recode_smknw25_32(smk32)
+    smk25 = derive_smk_detailed(
+      ever_var = smk25_ever_std,
+      freq_var = smk25_freq_std
+    ),
+    smk32 = derive_smk_detailed(
+      ever_var = smk32_ever_std,
+      freq_var = smk32_freq_std
+    ),
+
+    # Binary current smoking status
+    smknw14 = derive_smk_now(
+      ever_var = smk14_ever_std,
+      freq_var = smk14_freq_std
+    ),
+    smknw15 = derive_smk_now(
+      ever_var = smk15_ever_std,
+      freq_var = smk15_freq_std
+    ),
+    smknw16 = derive_smk_now(
+      ever_var = smk16_ever_std,
+      freq_var = smk16_freq_std
+    ),
+    smknw25 = derive_smk_now(
+      ever_var = smk25_ever_std,
+      freq_var = smk25_freq_std
+    ),
+    smknw32 = derive_smk_now(
+      ever_var = smk32_ever_std,
+      freq_var = smk32_freq_std
+    )
   ) %>%
   mutate(
     across(
       c(smk14, smk15, smk16, smk25, smk32),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(0, 1, 2, 3, -1, -2, -3, -8, -9),
         labels = c(
-          "Never",
-          "Used to smoke, don’t at all now",
-          "Smoke occasionally – not every day",
-          "Smoke almost every day",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
+          "Never" = 0,
+          "Used to smoke, don’t at all now" = 1,
+          "Smoke occasionally – not every day" = 2,
+          "Smoke almost every day" = 3,
+          common_missing_labels
         )
       )
     ),
     across(
       c(smknw14, smknw15, smknw16, smknw25, smknw32),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(0, 1, -1, -2, -3, -8, -9),
         labels = c(
-          "No",
-          "Yes",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
+          "No" = 0,
+          "Yes" = 1,
+          common_missing_labels
         )
       )
     )
-  ) %>%
+  )
+
+# Checks
+smoking_rec %>%
+  count(smk14_ever, smk14_freq, smk14, smknw14)
+
+smoking_rec %>%
+  count(smk15_ever, smk15_freq, smk15, smknw15)
+
+smoking_rec %>%
+  count(smk16_ever, smk16_freq, smk16, smknw16)
+
+smoking_rec %>%
+  count(smk25_ever_freq, smk25, smknw25)
+
+smoking_rec %>%
+  count(smk32_ever_freq, smk32, smknw32)
+
+smoking_all <- smoking_rec %>%
   select(
     NSID,
     smknw14,
@@ -168,60 +284,118 @@ alc_vars <- list(
 )
 
 # Merge all alcohol variables by NSID
-alc_all <- reduce(alc_vars, full_join, by = "NSID")
+alc_all <- reduce(alc_vars, full_join, by = "NSID") %>%
+  # Add '_raw' suffix to all 'audit*' variable names for simpler re-coding & cross-checks
+  rename_with(
+    ~ stringr::str_c(.x, "_raw"),
+    contains("audit")
+  )
 
-# First Time Had Alcohol
-# Code review / MD (2025-12-05): Vectorised rewrite of the original rowwise() code to improve speed.
-# This reproduces the original behaviour, including the current treatment of cases
-# with all alcohol indicators missing as "never had alcohol" (99).
-# Substantive logic (especially the 'never had alcohol' definition) to be revisited
-# at a later debugging/clean-up stage.
-alc_all <- alc_all |>
+
+## First time had alcohol --------------------------------------------------------------------
+
+# Helpers: Derive 'not drinking' from alcever and audita
+# This will be used to derive never drinkers.
+never_from_alcever <- function(x) {
+  dplyr::case_when(
+    x < 0 ~ NA_real_, # negative codes = missing
+    x == 2 ~ 1, # "never"
+    x == 1 ~ 0, # "ever"
+    .default = NA_real_
+  )
+}
+
+never_from_audita <- function(x) {
+  dplyr::case_when(
+    x < 0 ~ NA_real_, # negative codes = missing
+    x == 1 ~ 1, # "never"
+    x > 1 ~ 0, # "ever"
+    .default = NA_real_
+  )
+}
+
+alc_first_age_rec <- alc_all |>
   mutate(
+    # Derive age first known drinking
     ever14 = if_else(alcever_S1 == 1 & alcmon_S1 == 1, 14, NA_real_),
     ever15 = if_else(alcever_S2 == 1, 15, NA_real_),
     ever16 = if_else(alcever_S3 == 1, 16, NA_real_),
     ever17 = if_else(alcever_S4 == 1, 17, NA_real_),
     ever19 = if_else(alcever_S6 == 1, 19, NA_real_),
     ever20 = if_else(alcever_S7 == 1, 20, NA_real_),
-    ever25 = if_else(audita25 > 1, 25, NA_real_),
-    ever32 = if_else(audita32 > 1, 32, NA_real_),
+    ever25 = if_else(audita25_raw > 1, 25, NA_real_),
+    ever32 = if_else(audita32_raw > 1, 32, NA_real_),
 
     first_age_raw = pmin(
-      ever14, ever15, ever16, ever17,
-      ever19, ever20, ever25, ever32,
+      ever14,
+      ever15,
+      ever16,
+      ever17,
+      ever19,
+      ever20,
+      ever25,
+      ever32,
       na.rm = TRUE
     ),
-    first_age_raw = if_else(
-      is.infinite(first_age_raw),
-      NA_real_,
-      first_age_raw
+
+    # Derive known never drinking
+    # recode to 1 = "never", 0 = "ever", NA = missing
+    across(
+      c(alcever_S1, alcever_S2, alcever_S3, alcever_S4, alcever_S6, alcever_S7),
+      never_from_alcever,
+      .names = "never_{.col}"
     ),
-
-    # This reproduces `all(..., na.rm = TRUE)` but vectorised
-    never_alc = rowSums(
-      cbind(
-        alcever_S1 == 2,
-        alcever_S2 == 2,
-        alcever_S3 == 2,
-        alcever_S4 == 2,
-        alcever_S6 == 2,
-        alcever_S7 == 2,
-        audita25 == 1,
-        audita32 == 1
-      ) == FALSE,
-      na.rm = TRUE
-    ) == 0,
-
+    across(
+      c(audita25_raw, audita32_raw),
+      never_from_audita,
+      .names = "never_{.col}"
+    ),
+    # Derive never drinkers:
+    # - 1 = all items observed & all never
+    # - 0 = at least one drinker
+    # - NA = no drinkers but some/all missing
+    never_alc = case_when(
+      # any 0 -> drinker
+      if_any(starts_with("never_"), ~ dplyr::coalesce(.x == 0, FALSE)) ~ 0L,
+      # all observed & 1
+      if_all(starts_with("never_"), ~ !is.na(.x) & .x == 1) ~ 1L,
+      # otherwise NA
+      .default = NA
+    ),
+    # First age -> use the first age when not missing.
+    # If never drinking, set to 99.
+    # Anything else is missing.
     alcfst = case_when(
       !is.na(first_age_raw) ~ first_age_raw,
-      never_alc ~ 99,
-      TRUE ~ -8
+      never_alc == 1 ~ 99,
+      .default = -8
     )
   ) |>
-  select(-starts_with("ever"), -first_age_raw, -never_alc)
+  select(-starts_with(c("ever", "never")), -first_age_raw)
 
-# function - Frequency Recode Across Sweeps
+# Add labels
+alc_first_age_rec <- alc_first_age_rec %>%
+  mutate(
+    alcfst = labelled(
+      alcfst,
+      labels = c(
+        "Age 14" = 14,
+        "Age 15" = 15,
+        "Age 16" = 16,
+        "Age 17" = 17,
+        "Age 19" = 19,
+        "Age 20" = 20,
+        "Age 25" = 25,
+        "Age 32" = 32,
+        "Never had alcohol" = 99,
+        common_missing_labels
+      )
+    )
+  )
+
+## Alcohol frequency --------------------------------------------------------------------
+
+# Helpers
 recode_freq <- function(x, sweep, ever) {
   case_when(
     sweep %in% c("S2", "S3", "S4") ~ case_when(
@@ -231,11 +405,11 @@ recode_freq <- function(x, sweep, ever) {
       x == 5 ~ 1, # once every couple of month
       x == 6 ~ 0, # less often/not at all
       ever == 2 ~ 0, # less often/not at all
-      x %in% c(-99, -97, -96) ~ -2,
-      x == -92 ~ -9,
-      x == -1 ~ -1,
-      x == -91 ~ -1,
-      TRUE ~ -3
+      # Missing  values:
+      x %in% c(-97, -92) | ever %in% c(-97, -92) ~ -9, # refusal if either refused,
+      x == -1 | ever == -1 ~ -8, # dk/missing info
+      x == -91 | ever == -91 ~ -1, # not applicable
+      .default = -3
     ),
     sweep %in% c("S6", "S7") ~ case_when(
       x %in% c(1, 2) ~ 4,
@@ -245,17 +419,17 @@ recode_freq <- function(x, sweep, ever) {
       x %in% c(7, 8) ~ 0,
       ever == 2 ~ 0,
       x == -997 ~ -2,
-      x == -97 ~ -9,
-      x == -92 ~ -9,
-      x == -91 ~ -1,
-      x == -1 ~ -1,
-      TRUE ~ -3
+      # Missing  values:
+      x %in% c(-97, -92) | ever %in% c(-97, -92) ~ -9, # refusal if either refused,
+      x == -1 | ever == -1 ~ -8, # dk/missing info
+      x == -91 | ever == -91 ~ -1, # not applicable
+      .default = -3
     )
   )
 }
 
-# recode frequency Variables
-alc_all <- alc_all %>%
+# Recode frequency variables
+alc_freq_rec <- alc_first_age_rec %>%
   mutate(
     alcfreq14 = case_when(
       alcfreq_S1 == 1 ~ 4,
@@ -266,158 +440,147 @@ alc_all <- alc_all %>%
       alcfreq_S1 == 6 ~ 0,
       alcever_S1 == 2 ~ 0,
       alcmon_S1 == 2 ~ 0,
-      alcfreq_S1 %in% c(-99, -97, -96) ~ -2,
-      alcfreq_S1 == -92 ~ -9,
-      alcfreq_S1 == -1 ~ -1,
-      alcfreq_S1 == -91 ~ -1,
-      TRUE ~ -3
+      # Missing  values:
+      alcfreq_S1 %in%
+        c(-97, -92) |
+        alcmon_S1 %in% c(-97, -92) |
+        alcever_S1 %in% c(-97, -92) ~ -9, # refusal if either refused,
+      alcfreq_S1 == -1 | alcmon_S1 == -1 | alcever_S1 == -1 ~ -8, # dk/missing info
+      alcfreq_S1 == -91 | alcmon_S1 == -91 | alcever_S1 == -91 ~ -1, # not applicable
+      .default = -3
     ),
     alcfreq15 = recode_freq(alcfreq_S2, "S2", alcever_S2),
     alcfreq16 = recode_freq(alcfreq_S3, "S3", alcever_S3),
     alcfreq17 = recode_freq(alcfreq_S4, "S4", alcever_S4),
     alcfreq19 = recode_freq(alcfreq_S6, "S6", alcever_S6),
     alcfreq20 = recode_freq(alcfreq_S7, "S7", alcever_S7),
+  ) %>%
+  # Add labels
+  mutate(
+    across(
+      c(alcfreq14, alcfreq15, alcfreq16, alcfreq17, alcfreq19, alcfreq20),
+      ~ labelled(
+        .x,
+        labels = c(
+          "Less often/not at all" = 0,
+          "Once every couple of months" = 1,
+          "Once to three times a month" = 2,
+          "Once or twice a week" = 3,
+          "Most days" = 4,
+          common_missing_labels
+        )
+      )
+    )
   )
 
+# Check
+## Cross-tabs for alcfreq
+{
+  # Build separate cross-tabs for each sweep with alcfreq_S*, alcever_S* first and alcfreq* last
+  freq_map <- list(
+    S1 = c("alcever_S1", "alcfreq_S1", "alcmon_S1", "alcfreq14"),
+    S2 = c("alcever_S2", "alcfreq_S2", "alcfreq15"),
+    S3 = c("alcever_S3", "alcfreq_S3", "alcfreq16"),
+    S4 = c("alcever_S4", "alcfreq_S4", "alcfreq17"),
+    S6 = c("alcever_S6", "alcfreq_S6", "alcfreq19"),
+    S7 = c("alcever_S7", "alcfreq_S7", "alcfreq20")
+  )
 
-alc_all_clean <- alc_all %>%
+  alc_freq_crosstabs <- purrr::imap(freq_map, function(cols, sweep) {
+    alc_freq_rec %>%
+      dplyr::group_by(dplyr::across(dplyr::all_of(cols))) %>%
+      dplyr::summarise(n = dplyr::n(), .groups = "drop")
+  })
+}
+
+# AUDIT-C --------------------------------------------------------------------
+
+alc_all_clean <- alc_freq_rec %>%
   mutate(
     audita25 = case_when(
-      audita25 > 0 ~ audita25 - 1,
-      audita25 < 0 ~ audita25,
-      is.na(audita25) ~ -3,
+      audita25_raw > 0 ~ audita25_raw - 1,
+      audita25_raw < 0 ~ audita25_raw,
+      is.na(audita25_raw) ~ -3,
     ),
     audita32 = case_when(
-      audita32 > 0 ~ audita32 - 1,
-      audita32 < 0 ~ audita32,
-      is.na(audita32) ~ -3,
+      audita32_raw > 0 ~ audita32_raw - 1,
+      audita32_raw < 0 ~ audita32_raw,
+      is.na(audita32_raw) ~ -3,
     )
   ) %>%
   mutate(
     auditb25 = case_when(
       audita25 == 0 ~ 0,
-      audita25 > 0 & auditb25 > 0 ~ auditb25,
-      auditb25 < 0 ~ auditb25,
-      is.na(auditb25) ~ -3
+      audita25 > 0 & auditb25_raw > 0 ~ auditb25_raw,
+      auditb25_raw < 0 ~ auditb25_raw,
+      is.na(auditb25_raw) ~ -3
     ),
     auditb32 = case_when(
       audita32 == 0 ~ 0,
-      audita32 > 0 & auditb32 > 0 ~ auditb32,
-      auditb32 < 0 ~ auditb32,
-      is.na(auditb32) ~ -3
+      audita32 > 0 & auditb32_raw > 0 ~ auditb32_raw,
+      auditb32_raw < 0 ~ auditb32_raw,
+      is.na(auditb32_raw) ~ -3
     ),
     auditc25 = case_when(
       audita25 == 0 ~ 0,
-      is.na(auditc25) ~ -3,
-      auditc25 < 0 ~ auditc25,
-      TRUE ~ auditc25 - 1
+      is.na(auditc25_raw) ~ -3,
+      auditc25_raw < 0 ~ auditc25_raw,
+      TRUE ~ auditc25_raw - 1
     ),
     auditc32 = case_when(
       audita32 == 0 ~ 0,
-      is.na(auditc32) ~ -3,
-      auditc32 < 0 ~ auditc32,
-      TRUE ~ auditc32 - 1
+      is.na(auditc32_raw) ~ -3,
+      auditc32_raw < 0 ~ auditc32_raw,
+      TRUE ~ auditc32_raw - 1
     )
   ) %>%
   mutate(
-    alcfst = factor(
-      alcfst,
-      levels = c(14, 15, 16, 17, 19, 20, 25, 32, 99, -1, -2, -3, -8, -9),
-      labels = c(
-        "Age 14",
-        "Age 15",
-        "Age 16",
-        "Age 17",
-        "Age 19",
-        "Age 20",
-        "Age 25",
-        "Age 32",
-        "Never had alcohol",
-        "Item not applicable",
-        "Script error/information lost",
-        "Not asked at the fieldwork stage/participated/interviewed",
-        "Don’t know/insufficient information",
-        "Refusal"
-      )
-    ),
-    across(
-      c(alcfreq14, alcfreq15, alcfreq16, alcfreq17, alcfreq19, alcfreq20),
-      ~ factor(
-        .x,
-        levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9),
-        labels = c(
-          "Less often/not at all",
-          "Once every couple of months",
-          "Once to three times a month",
-          "Once or twice a week",
-          "Most days",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
-        )
-      )
-    ),
     across(
       c(audita25, audita32),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9),
         labels = c(
-          "Never",
-          "Monthly or less",
-          "2–4 times a month",
-          "2–3 times a week",
-          "4 or more times a week",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
+          "Never" = 0,
+          "Monthly or less" = 1,
+          "2–4 times a month" = 2,
+          "2–3 times a week" = 3,
+          "4 or more times a week" = 4,
+          common_missing_labels
         )
       )
     ),
     across(
       c(auditb25, auditb32),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(0, 1, 2, 3, 4, 5, -1, -2, -3, -8, -9),
         labels = c(
-          "0",
-          "1–2 drinks",
-          "3–4 drinks",
-          "5–6 drinks",
-          "7–9 drinks",
-          "10+",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
+          "0" = 0,
+          "1–2 drinks" = 1,
+          "3–4 drinks" = 2,
+          "5–6 drinks" = 3,
+          "7–9 drinks" = 4,
+          "10+" = 5,
+          common_missing_labels
         )
       )
     ),
     across(
       c(auditc25, auditc32),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9),
         labels = c(
-          "Never",
-          "Less than monthly",
-          "Monthly",
-          "Weekly",
-          "Daily or almost daily",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
+          "Never" = 0,
+          "Less than monthly" = 1,
+          "Monthly" = 2,
+          "Weekly" = 3,
+          "Daily or almost daily" = 4,
+          common_missing_labels
         )
       )
     )
-  ) %>%
+  )
+
+alc_all_clean <- alc_all_clean %>%
   select(
     NSID,
     alcfst,
@@ -710,40 +873,30 @@ drug_final <- drug_all %>%
   mutate(
     across(
       c(drgcnbevr, drgothevr, starts_with("drgcnbnw"), starts_with("drgothnw")),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(0, 1, -1, -2, -3, -8, -9),
         labels = c(
-          "No",
-          "Yes",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
+          "No" = 0,
+          "Yes" = 1,
+          common_missing_labels
         )
       )
     ),
     across(
       c(drgcnbfst, drgothfst),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(14, 15, 16, 17, 19, 20, 25, 32, 99, -1, -2, -3, -8, -9),
         labels = c(
-          "Age 14",
-          "Age 15",
-          "Age 16",
-          "Age 17",
-          "Age 19",
-          "Age 20",
-          "Age 25",
-          "Age 32",
-          "Never used",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
+          "Age 14" = 14,
+          "Age 15" = 15,
+          "Age 16" = 16,
+          "Age 17" = 17,
+          "Age 19" = 19,
+          "Age 20" = 20,
+          "Age 25" = 25,
+          "Age 32" = 32,
+          "Never used" = 99,
+          common_missing_labels
         )
       )
     )
@@ -826,19 +979,14 @@ spt_all <- spt_all %>%
   ) %>%
   mutate(across(
     c(starts_with("spt")),
-    ~ factor(
+    ~ labelled(
       .x,
-      levels = c(0, 1, 2, 3, -1, -2, -3, -8, -9),
       labels = c(
-        "Most days",
-        "More than once a week",
-        "Once a week",
-        "Less than once a week/hardly ever/never",
-        "Item not applicable",
-        "Script error/information lost",
-        "Not asked at the fieldwork stage/participated/interviewed",
-        "Don’t know/insufficient information",
-        "Refusal"
+        "Most days" = 0,
+        "More than once a week" = 1,
+        "Once a week" = 2,
+        "Less than once a week/hardly ever/never" = 3,
+        common_missing_labels
       )
     )
   )) %>%
@@ -883,17 +1031,12 @@ absence_all <- absence_all %>%
   ) %>%
   mutate(across(
     starts_with("abs1m"),
-    ~ factor(
+    ~ labelled(
       .x,
-      levels = c(0, 1, -1, -2, -3, -8, -9),
       labels = c(
-        "No",
-        "Yes",
-        "Item not applicable",
-        "Script error/information lost",
-        "Not asked at the fieldwork stage/participated/interviewed",
-        "Don’t know/insufficient information",
-        "Refusal"
+        "No" = 0,
+        "Yes" = 1,
+        common_missing_labels
       )
     )
   )) %>%
@@ -943,17 +1086,12 @@ suspend_expel_all <- suspend_expel_all %>%
   ) %>%
   mutate(across(
     c(starts_with("abs1m"), starts_with("expl")),
-    ~ factor(
+    ~ labelled(
       .x,
-      levels = c(0, 1, -1, -2, -3, -8, -9),
       labels = c(
-        "No",
-        "Yes",
-        "Item not applicable",
-        "Script error/information lost",
-        "Not asked at the fieldwork stage/participated/interviewed",
-        "Don’t know/insufficient information",
-        "Refusal"
+        "No" = 0,
+        "Yes" = 1,
+        common_missing_labels
       )
     )
   )) %>%
@@ -1020,20 +1158,15 @@ truancy_all <- truancy_all %>%
   ) %>%
   mutate(across(
     starts_with("trua"),
-    ~ factor(
+    ~ labelled(
       .x,
-      levels = c(0, 1, 2, 3, 4, -1, -2, -3, -8, -9),
       labels = c(
-        "Never played truant",
-        "For weeks at a time",
-        "Several days at a time",
-        "Particular days or lessons",
-        "Odd day or lesson",
-        "Item not applicable",
-        "Script error/information lost",
-        "Not asked at the fieldwork stage/participated/interviewed",
-        "Don’t know/insufficient information",
-        "Refusal"
+        "Never played truant" = 0,
+        "For weeks at a time" = 1,
+        "Several days at a time" = 2,
+        "Particular days or lessons" = 3,
+        "Odd day or lesson" = 4,
+        common_missing_labels
       )
     )
   )) %>%
@@ -1185,33 +1318,23 @@ police_all <- police_all %>%
         starts_with("polglt"),
         starts_with("polpnd")
       ),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(0, 1, -1, -2, -3, -8, -9),
         labels = c(
-          "No",
-          "Yes",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
+          "No" = 0,
+          "Yes" = 1,
+          common_missing_labels
         )
       )
     ),
     across(
       c(pol14, pol15, pol16, pol17),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(0, 1, -1, -2, -3, -8, -9),
         labels = c(
-          "No",
-          "Yes/not in last 3 years",
-          "Item not applicable",
-          "Script error/information lost",
-          "Not asked at the fieldwork stage/participated/interviewed",
-          "Don’t know/insufficient information",
-          "Refusal"
+          "No" = 0,
+          "Yes/not in last 3 years" = 1,
+          common_missing_labels
         )
       )
     ),
@@ -1331,17 +1454,12 @@ bully_all <- bully_all %>%
   ) %>%
   mutate(across(
     starts_with("bul"),
-    ~ factor(
+    ~ labelled(
       .x,
-      levels = c(0, 1, -1, -2, -3, -8, -9),
       labels = c(
-        "No",
-        "Yes",
-        "Item not applicable",
-        "Script error/information lost",
-        "Not asked at the fieldwork stage/participated/interviewed",
-        "Don’t know/insufficient information",
-        "Refusal"
+        "No" = 0,
+        "Yes" = 1,
+        common_missing_labels
       )
     )
   )) %>%

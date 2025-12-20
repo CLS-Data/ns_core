@@ -1,3 +1,12 @@
+# Prerequisite: 00-load-raw-data.R (this script also sources helpers.R)
+#
+# If you are running this script on its own, please run the following first
+# from the project root:
+#
+# source(here::here("R", "00-load-raw-data.R"))
+#
+# or manually run 00-load-raw-data.R before this script.
+
 # Sex --------------------------------------------------------------------
 
 # Load sex variables from relevant sweeps
