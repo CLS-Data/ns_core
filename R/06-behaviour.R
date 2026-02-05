@@ -1354,6 +1354,7 @@ truancy_all <- truancy_rec %>%
   select(NSID, trua14, trua15, trua16, trua17)
 
 # Police Contact --------------------------------------------------------------------
+
 # Load data for police contact
 police_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>%
@@ -1385,7 +1386,12 @@ police_vars <- list(
 )
 
 # Merge datasets
-police_all <- reduce(police_vars, full_join, by = "NSID")
+police_all <- reduce(police_vars, full_join, by = "NSID") %>%
+  # Add '_raw' suffix to all variable names for simpler re-coding & cross-checks
+  rename_with(
+    .fn = ~ stringr::str_c(.x, "_raw"),
+    .cols = !contains("NSID")
+  )
 
 # Recode function for binary variables (pol15,16)
 recode_pol <- function(x) {
@@ -1394,10 +1400,10 @@ recode_pol <- function(x) {
     x == 2 ~ 0,
     x %in% c(-97, -92) ~ -9,
     x == -91 ~ -1,
-    x %in% c(-96, -1) ~ -8,
+    x %in% c(-1) ~ -8,
     x %in% c(-998, -997, -995) ~ -2,
     x %in% c(-99) ~ -3,
-    is.na(x) ~ -3
+    .default = -3
   )
 }
 
@@ -1406,108 +1412,46 @@ recode_cnt <- function(x, ever) {
   case_when(
     ever %in% c(2, 3) ~ 0,
     x >= 0 ~ x,
-    x %in% c(-97, -92) ~ -9,
-    x == -91 ~ -1,
-    x %in% c(-96, -1) ~ -8,
+    # Use hierarchy for missing values:
+    ever %in% c(-92, -97) | x %in% c(-92, -97) ~ -9,
+    ever == -1 | x == -1 ~ -8,
+    # Script errors/information lost:
     x %in% c(-998, -997, -995) ~ -2,
-    x %in% c(-99, -996) ~ -3,
-    is.na(x) ~ -3,
+    # Else is not interviewed/asked etc. -> -3
+    .default = -3
   )
 }
 
-# Apply recoding
-police_all <- police_all %>%
+## Police contact --------------------------------------------------------------------
+police_rec_contact <- police_all %>%
   mutate(
-    polcnt14 = recode_cnt(polcnt14, pol14),
-    polcnt15 = recode_cnt(polcnt15, pol15),
-    polcnt16 = recode_cnt(polcnt16, pol16),
-    polcnt17 = recode_cnt(polcnt17, pol17),
-    across(
-      starts_with("polwrn"),
-      ~ case_when(
-        .x == 1 ~ 1,
-        .x == 2 ~ 0,
-        .x < 0 ~ .x,
-        TRUE ~ -3
-      )
-    ),
-    across(
-      starts_with("polars"),
-      ~ case_when(
-        .x == 1 ~ 1,
-        .x == 2 ~ 0,
-        .x < 0 ~ .x,
-        TRUE ~ -3
-      )
-    ),
-    across(
-      starts_with("polcau"),
-      ~ case_when(
-        .x == 1 ~ 1,
-        .x == 2 ~ 0,
-        .x < 0 ~ .x,
-        TRUE ~ -3
-      )
-    ),
-    across(
-      starts_with("polglt"),
-      ~ case_when(
-        .x == 1 ~ 1,
-        .x == 2 ~ 0,
-        .x < 0 ~ .x,
-        TRUE ~ -3
-      )
-    ),
-    across(
-      starts_with("polpnd"),
-      ~ case_when(
-        .x == 1 ~ 1,
-        .x == 2 ~ 0,
-        .x < 0 ~ .x,
-        TRUE ~ -3
-      )
-    )
-  ) %>%
-  mutate(
+    # Police contact - binary:
     pol14 = case_when(
-      pol14 %in% c(1, 3) ~ 1,
-      pol14 == 2 ~ 0,
-      pol14 %in% c(-97, -92) ~ -9,
-      pol14 == -91 ~ -1,
-      pol14 %in% c(-96, -1) ~ -8,
-      pol14 %in% c(-99) ~ -3,
-      TRUE ~ -3
+      pol14_raw %in% c(1, 3) ~ 1,
+      pol14_raw == 2 ~ 0,
+      pol14_raw %in% c(-97, -92) ~ -9,
+      pol14_raw == -91 ~ -1,
+      pol14_raw %in% c(-1) ~ -8,
+      pol14_raw %in% c(-99) ~ -3,
+      .default = -3
     ),
-    pol15 = recode_pol(pol15),
-    pol16 = recode_pol(pol16),
+    pol15 = recode_pol(pol15_raw),
+    pol16 = recode_pol(pol16_raw),
     pol17 = case_when(
-      pol17 %in% c(1, 3) ~ 1,
-      pol17 == 2 ~ 0,
-      pol17 %in% c(-97, -92) ~ -9,
-      pol17 == -91 ~ -1,
-      pol17 %in% c(-96, -1) ~ -8,
-      pol17 %in% c(-99) ~ -3,
-      TRUE ~ -3
-    )
-  ) %>%
-  mutate(
-    across(
-      c(
-        starts_with("polwrn"),
-        starts_with("polars"),
-        starts_with("polcau"),
-        starts_with("polglt"),
-        starts_with("polpnd")
-      ),
-      ~ labelled(
-        .x,
-        labels = c(
-          "No" = 0,
-          "Yes" = 1,
-          common_missing_labels
-        )
-      )
+      pol17_raw %in% c(1, 3) ~ 1,
+      pol17_raw == 2 ~ 0,
+      pol17_raw %in% c(-97, -92) ~ -9,
+      pol17_raw == -91 ~ -1,
+      pol17_raw %in% c(-1) ~ -8,
+      pol17_raw %in% c(-99) ~ -3,
+      .default = -3
     ),
+    # Police contact - count:
+    polcnt14 = recode_cnt(polcnt14_raw, pol14_raw),
+    polcnt15 = recode_cnt(polcnt15_raw, pol15_raw),
+    polcnt16 = recode_cnt(polcnt16_raw, pol16_raw),
+    polcnt17 = recode_cnt(polcnt17_raw, pol17_raw),
+    # Add labels
     across(
       c(pol14, pol15, pol16, pol17),
       ~ labelled(
@@ -1520,7 +1464,7 @@ police_all <- police_all %>%
       )
     ),
     across(
-      c(starts_with("polcnt")),
+      c(starts_with("polcnt") & !ends_with("raw")),
       ~ labelled(
         .x,
         labels = c(
@@ -1532,7 +1476,167 @@ police_all <- police_all %>%
         )
       )
     )
-  ) %>%
+  )
+
+
+# Cross-tabs
+police_rec_contact %>%
+  count(pol14_raw, pol14)
+police_rec_contact %>%
+  count(pol15_raw, pol15)
+police_rec_contact %>%
+  count(pol16_raw, pol16)
+police_rec_contact %>%
+  count(pol17_raw, pol17)
+
+police_rec_contact %>%
+  count(pol14_raw, polcnt14_raw, polcnt14) %>%
+  print(n = Inf)
+police_rec_contact %>%
+  count(pol15_raw, polcnt15_raw, polcnt15) %>%
+  print(n = Inf)
+# For polcnt16_raw, -1 is dk/insufficient info (checked the data dictionary, label only missing in the Stata file).
+police_rec_contact %>%
+  count(pol16_raw, polcnt16_raw, polcnt16) %>%
+  print(n = Inf)
+police_rec_contact %>%
+  count(pol17_raw, polcnt17_raw, polcnt17) %>%
+  print(n = Inf)
+
+## Police warning, arrest, caution  --------------------------------------------------------------------
+
+police_rec_warning <- police_rec_contact %>%
+  mutate(
+    across(
+      starts_with("polwrn"),
+      ~ case_when(
+        .x == 1 ~ 1,
+        .x == 2 ~ 0,
+        .x < 0 ~ .x,
+        TRUE ~ -3
+      ),
+      .names = "{stringr::str_remove(.col, '_raw$')}"
+    ),
+    across(
+      starts_with("polars"),
+      ~ case_when(
+        .x == 1 ~ 1,
+        .x == 2 ~ 0,
+        .x < 0 ~ .x,
+        TRUE ~ -3
+      ),
+      .names = "{stringr::str_remove(.col, '_raw$')}"
+    ),
+    across(
+      starts_with("polcau"),
+      ~ case_when(
+        .x == 1 ~ 1,
+        .x == 2 ~ 0,
+        .x < 0 ~ .x,
+        TRUE ~ -3
+      ),
+      .names = "{stringr::str_remove(.col, '_raw$')}"
+    ),
+    # Add labels
+    across(
+      c(
+        starts_with("polwrn") & !ends_with("raw"),
+        starts_with("polars") & !ends_with("raw"),
+        starts_with("polcau") & !ends_with("raw")
+      ),
+      ~ labelled(
+        .x,
+        labels = c(
+          "No" = 0,
+          "Yes" = 1,
+          common_missing_labels
+        )
+      )
+    )
+  )
+
+# Cross-tabs
+pol_warn_pairs <- tibble::tibble(
+  raw_var = names(police_rec_warning) |>
+    stringr::str_subset("^(polwrn|polars|polcau).*_raw$")
+) |>
+  dplyr::mutate(
+    rec_var = stringr::str_remove(raw_var, "_raw$"),
+    has_rec = rec_var %in% names(police_rec_warning)
+  ) |>
+  dplyr::filter(has_rec) |>
+  dplyr::select(raw_var, rec_var)
+
+police_warn_crosstabs <- pol_warn_pairs |>
+  purrr::pmap(function(raw_var, rec_var) {
+    police_rec_warning |>
+      dplyr::count(
+        raw = .data[[raw_var]],
+        rec = .data[[rec_var]],
+        name = "n"
+      ) |>
+      dplyr::mutate(
+        raw_var = raw_var,
+        rec_var = rec_var,
+        .before = 1
+      )
+  })
+
+police_warn_crosstabs
+
+## Found guilty, penalty notice  --------------------------------------------------------------------
+
+police_rec_guilty <- police_rec_warning %>%
+  mutate(
+    across(
+      starts_with("polglt"),
+      ~ case_when(
+        .x == 1 ~ 1,
+        .x == 2 ~ 0,
+        .x < 0 ~ .x,
+        TRUE ~ -3
+      ),
+      .names = "{stringr::str_remove(.col, '_raw$')}"
+    ),
+    across(
+      starts_with("polpnd"),
+      ~ case_when(
+        .x == 1 ~ 1,
+        .x == 2 ~ 0,
+        .x < 0 ~ .x,
+        TRUE ~ -3
+      ),
+      .names = "{stringr::str_remove(.col, '_raw$')}"
+    ),
+    # Add labels
+    across(
+      c(
+        starts_with("polglt") & !ends_with("raw"),
+        starts_with("polpnd") & !ends_with("raw")
+      ),
+      ~ labelled(
+        .x,
+        labels = c(
+          "No" = 0,
+          "Yes" = 1,
+          common_missing_labels
+        )
+      )
+    )
+  )
+
+# Cross-tabs
+police_rec_guilty %>%
+  count(polglt25_raw, polglt25)
+police_rec_guilty %>%
+  count(polglt32_raw, polglt32)
+police_rec_guilty %>%
+  count(polpnd25_raw, polpnd25)
+police_rec_guilty %>%
+  count(polpnd32_raw, polpnd32)
+
+police_all <- police_rec_guilty %>%
+  select(!ends_with("raw")) %>%
   select(
     NSID,
     pol14,
