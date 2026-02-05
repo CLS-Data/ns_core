@@ -1017,7 +1017,12 @@ exercise_vars <- list(
 )
 
 # Merge all datasets
-spt_all <- reduce(exercise_vars, full_join, by = "NSID")
+spt_all <- reduce(exercise_vars, full_join, by = "NSID") %>%
+  # Add '_raw' suffix to all variable names for simpler re-coding & cross-checks
+  rename_with(
+    .fn = ~ stringr::str_c(.x, "_raw"),
+    .cols = !contains("NSID")
+  )
 
 # Recode function
 recode_exercise <- function(x) {
@@ -1033,49 +1038,82 @@ recode_exercise <- function(x) {
   )
 }
 
-# Apply recoding
-spt_all <- spt_all %>%
+# Re-coding
+## At sweeps 8-9, the question wording changed,
+## asking about the number of days per week doing exercise for 30 mins or more.
+## For these sweeps, re-coding was done as follows:
+## - 5-7 days = "most days" (0)
+## - 2-4 days = "more than once a week" (1)
+## - 1 day = "once a week" (2)
+## - 0 days = "less than once a week/hardly ever/never" (3)
+spt_rec <- spt_all %>%
   mutate(
-    spt14 = recode_exercise(spt14),
-    spt15 = recode_exercise(spt15),
-    spt17 = recode_exercise(spt17),
-    spt19 = recode_exercise(spt19),
-    spt20 = recode_exercise(spt20),
+    spt14 = recode_exercise(spt14_raw),
+    spt15 = recode_exercise(spt15_raw),
+    spt17 = recode_exercise(spt17_raw),
+    spt19 = recode_exercise(spt19_raw),
+    spt20 = recode_exercise(spt20_raw),
     spt25 = case_when(
       # values from 0–7 days
-      spt25 %in% c(5, 6, 7) ~ 0,
-      spt25 %in% c(2, 3, 4) ~ 1,
-      spt25 == 1 ~ 2,
-      spt25 == 0 ~ 3,
-      spt25 == -9 ~ -9,
-      spt25 == -8 ~ -8,
-      spt25 == -1 ~ -1,
-      is.na(spt25) ~ -3
+      spt25_raw %in% c(5, 6, 7) ~ 0,
+      spt25_raw %in% c(2, 3, 4) ~ 1,
+      spt25_raw == 1 ~ 2,
+      spt25_raw == 0 ~ 3,
+      spt25_raw == -9 ~ -9,
+      spt25_raw == -8 ~ -8,
+      spt25_raw == -1 ~ -1,
+      is.na(spt25_raw) ~ -3
     ),
     spt32 = case_when(
-      spt32 %in% c(5, 6, 7) ~ 0,
-      spt32 %in% c(2, 3, 4) ~ 1,
-      spt32 == 1 ~ 2,
-      spt32 == 0 ~ 3,
-      spt32 == -9 ~ -9,
-      spt32 == -8 ~ -8,
-      spt32 == -1 ~ -1,
-      is.na(spt32) | spt32 == -3 ~ -3
+      spt32_raw %in% c(5, 6, 7) ~ 0,
+      spt32_raw %in% c(2, 3, 4) ~ 1,
+      spt32_raw == 1 ~ 2,
+      spt32_raw == 0 ~ 3,
+      spt32_raw == -9 ~ -9,
+      spt32_raw == -8 ~ -8,
+      spt32_raw == -1 ~ -1,
+      is.na(spt32_raw) | spt32_raw == -3 ~ -3
     )
   ) %>%
-  mutate(across(
-    c(starts_with("spt")),
-    ~ labelled(
-      .x,
-      labels = c(
-        "Most days" = 0,
-        "More than once a week" = 1,
-        "Once a week" = 2,
-        "Less than once a week/hardly ever/never" = 3,
-        common_missing_labels
+  mutate(
+    across(
+      c(starts_with("spt") & !ends_with("raw")),
+      ~ labelled(
+        .x,
+        labels = c(
+          "Most days" = 0,
+          "More than once a week" = 1,
+          "Once a week" = 2,
+          "Less than once a week/hardly ever/never" = 3,
+          common_missing_labels
+        )
       )
     )
-  )) %>%
+  )
+
+# Cross-tabs
+spt_rec %>%
+  count(spt14_raw, spt14)
+
+spt_rec %>%
+  count(spt15_raw, spt15)
+
+spt_rec %>%
+  count(spt17_raw, spt17)
+
+spt_rec %>%
+  count(spt19_raw, spt19)
+
+spt_rec %>%
+  count(spt20_raw, spt20)
+
+spt_rec %>%
+  count(spt25_raw, spt25)
+
+spt_rec %>%
+  count(spt32_raw, spt32)
+
+spt_all <- spt_rec %>%
   select(NSID, spt14, spt15, spt17, spt19, spt20, spt25, spt32)
 
 # Absence --------------------------------------------------------------------
