@@ -113,7 +113,7 @@ derived_vars <- list(
   lsi_all,
   smoking_all,
   alc_all_clean,
-  drug_final,
+  drug_all_clean,
   spt_all,
   absence_all,
   suspend_expel_all,

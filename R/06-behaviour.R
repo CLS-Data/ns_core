@@ -493,7 +493,7 @@ alc_freq_rec <- alc_first_age_rec %>%
   })
 }
 
-# AUDIT-C --------------------------------------------------------------------
+## AUDIT-C --------------------------------------------------------------------
 
 alc_all_clean <- alc_freq_rec %>%
   mutate(
@@ -599,7 +599,15 @@ alc_all_clean <- alc_all_clean %>%
   )
 
 # Drug Use --------------------------------------------------------------------
+
 # Load drug use data from relevant sweeps
+## Naming convention:
+## canevr - ever used cannabis
+## now_cann - currently using cannabis
+## yr_cann - used cannabis in past 12 months
+## othevr - ever used other drugs
+## now_oth - currently using other drugs
+## yr_oth - used other drugs in past 12 months
 drug_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>%
     select(NSID, canevr14 = W1canntryYP),
@@ -623,32 +631,39 @@ drug_vars <- list(
       canevr20 = W7DrugYP1YP0a,
       othevr20 = W7DrugYP1YP0b,
       now_cann20 = W7DrugOftenYP0a,
-      now_oth20 = starts_with("W7DrugOftenYP0")
+      now_oth20 = starts_with("W7DrugOftenYP0") & !any_of("W7DrugOftenYP0a")
     ),
   S8 = ns_data[["S8selfcompletion"]] %>%
     select(
       NSID,
       canevr25 = W8DRUGYP10A,
-      othevr25 = starts_with("W8DRUGYP10"),
+      othevr25 = starts_with("W8DRUGYP10") & !any_of("W8DRUGYP10A"),
       yr_cann25 = W8DRUGYP20A,
-      yr_oth25 = starts_with("W8DRUGYP20"),
+      yr_oth25 = starts_with("W8DRUGYP20") & !any_of("W8DRUGYP20A"),
       now_cann25 = W8DRUGOFTEN0A,
-      now_oth25 = starts_with("W8DRUGOFTEN0")
+      now_oth25 = starts_with("W8DRUGOFTEN0") & !any_of("W8DRUGOFTEN0A")
     ),
   S9 = ns_data[["S9maininterview"]] %>%
     select(
       NSID,
       canevr32 = W9DRUGYP10A,
-      othevr32 = starts_with("W9DRUGYP1"),
+      othevr32 = starts_with("W9DRUGYP1") & !any_of("W9DRUGYP10A"),
       yr_cann32 = W9DRUGYP20A,
-      yr_oth32 = starts_with("W9DRUGYP2"),
+      yr_oth32 = starts_with("W9DRUGYP2") & !any_of("W9DRUGYP20A"),
       now_cann32 = W9DRUGOFTEN0A,
-      now_oth32 = starts_with("W9DRUGOFTEN0")
+      now_oth32 = starts_with("W9DRUGOFTEN0") & !any_of("W9DRUGOFTEN0A")
     )
 )
 
 # Merge all datasets
-drug_all <- reduce(drug_vars, full_join, by = "NSID")
+drug_all <- reduce(drug_vars, full_join, by = "NSID") %>%
+  # Add '_raw' suffix to all variable names for simpler re-coding & cross-checks
+  rename_with(
+    .fn = ~ stringr::str_c(.x, "_raw"),
+    .cols = !contains("NSID")
+  )
+
+## Recode original response options --------------------------------------------------------------------
 
 # functions: Recode function preserving missing values
 # recode for whether using drug ever for each sweep
@@ -689,32 +704,39 @@ recode_drugbin89 <- function(x) {
 }
 
 # Recode cannabis & other drug variables
-drug_all <- drug_all %>%
+drug_rec <- drug_all %>%
   mutate(
     across(
       c(
-        canevr14,
-        canevr15,
-        canevr16,
-        canevr17,
-        canevr19,
-        canevr20,
-        now_cann19,
-        othevr19,
-        othevr20,
-        now_oth19
+        canevr14_raw,
+        canevr15_raw,
+        canevr16_raw,
+        canevr17_raw,
+        canevr19_raw,
+        canevr20_raw,
+        now_cann19_raw,
+        othevr19_raw,
+        othevr20_raw,
+        now_oth19_raw
       ),
-      recode_drugbin1_7
+      recode_drugbin1_7,
+      # Remove '_raw' suffix from new variable names
+      .names = "{stringr::str_remove(.col, '_raw$')}"
     ),
-    across(c(now_cann20, starts_with("now_oth20")), recode_drugoft7),
+    across(
+      c(now_cann20_raw, starts_with("now_oth20")),
+      recode_drugoft7,
+      # Remove '_raw' suffix from new variable names
+      .names = "{stringr::str_remove(.col, '_raw$')}"
+    ),
     across(
       c(
-        canevr25,
-        canevr32,
-        yr_cann25,
-        yr_cann32,
-        now_cann25,
-        now_cann32,
+        canevr25_raw,
+        canevr32_raw,
+        yr_cann25_raw,
+        yr_cann32_raw,
+        now_cann25_raw,
+        now_cann32_raw,
         starts_with("yr_oth25"),
         starts_with("yr_oth32"),
         starts_with("othevr25"),
@@ -722,65 +744,130 @@ drug_all <- drug_all %>%
         starts_with("now_oth25"),
         starts_with("now_oth32")
       ),
-      recode_drugbin89
+      recode_drugbin89,
+      # Remove '_raw' suffix from new variable names
+      .names = "{stringr::str_remove(.col, '_raw$')}"
     )
   )
 
-# Derive oth7–9 and now_oth7–9 from multiple variables
-# Code review / MD (2025-12-05): Vectorised rewrite of the original rowwise() code to improve speed.
-# This reproduces the original behaviour.
-# Substantive logic to be revisited at a later debugging/clean-up stage.
-row_max_df <- function(df) {
-  do.call(pmax, c(df, list(na.rm = TRUE)))
+# Check: cross-tabs
+drug_pairs <- tibble::tibble(
+  raw_var = names(drug_rec) |>
+    stringr::str_subset("_raw$")
+) |>
+  dplyr::mutate(
+    rec_var = stringr::str_remove(raw_var, "_raw$"),
+    has_rec = rec_var %in% names(drug_rec)
+  ) |>
+  dplyr::filter(has_rec) |>
+  dplyr::select(raw_var, rec_var)
+
+drug_crosstabs <- drug_pairs |>
+  purrr::pmap(function(raw_var, rec_var) {
+    drug_rec |>
+      dplyr::count(
+        raw = .data[[raw_var]],
+        rec = .data[[rec_var]],
+        name = "n"
+      ) |>
+      dplyr::mutate(
+        raw_var = raw_var,
+        rec_var = rec_var,
+        .before = 1
+      )
+  })
+
+## Derive 'Other' --------------------------------------------------------------------
+
+# Helper function: Derive 'Other' drug use within a sweep.
+## Used derive a single variable indicating if a person used drugs other than cannabis within a sweep.
+## It uses the indicator for whether ANY drug was used (based on separate yes/no indicators for each drug).
+## Coded as 1 = 'yes' if any drug was used.
+## Else, coded as 0 = 'no' if all drugs were reported as not used (conservative).
+## Else, missing values follow a hierarchy.
+derive_drug_other_within <- function(cols) {
+  dplyr::case_when(
+    ## If any variable reported as yes -> 'yes' (1).
+    dplyr::if_any({{ cols }}, \(x) dplyr::coalesce(x == 1, FALSE)) ~ 1L,
+    ## ELSE: If all drugs reported as NOT having used -> 'no' (0).
+    dplyr::if_all({{ cols }}, \(x) !is.na(x) & x == 0) ~ 0L,
+    ## ELSE: If any -9 (refusal) -> -9.
+    dplyr::if_any({{ cols }}, \(x) dplyr::coalesce(x == -9, FALSE)) ~ -9L,
+    ## ELSE: If any -8 (dk/insufficient info) -> -8.
+    dplyr::if_any({{ cols }}, \(x) dplyr::coalesce(x == -8, FALSE)) ~ -8L,
+    ## ELSE: If any -1 (not applicable) -> -1.
+    dplyr::if_any({{ cols }}, \(x) dplyr::coalesce(x == -1, FALSE)) ~ -1L,
+    ## ELSE: -3 (not interviewed/asked etc.)
+    TRUE ~ -3L
+  )
 }
 
-drug_all <- drug_all |>
-  mutate(
-    # 25-sweep: use columns 2:9 (8 "other" vars)
-    othevr25 = row_max_df(
-      pick(starts_with("othevr25"))[2:9]
+drug_rec <- drug_rec |>
+  dplyr::mutate(
+    othevr25 = derive_drug_other_within(
+      starts_with("othevr25") & !ends_with("raw")
     ),
-    now_oth20 = row_max_df(
-      pick(starts_with("now_oth20"))[2:9]
+    othevr32 = derive_drug_other_within(
+      starts_with("othevr32") & !ends_with("raw")
     ),
-    now_oth25 = row_max_df(
-      pick(starts_with("now_oth25"))[2:9]
+    yr_oth25 = derive_drug_other_within(
+      starts_with("yr_oth25") & !ends_with("raw")
     ),
-    yr_oth25 = row_max_df(
-      pick(starts_with("yr_oth25"))[2:9]
+    yr_oth32 = derive_drug_other_within(
+      starts_with("yr_oth32") & !ends_with("raw")
     ),
-
-    # 32-sweep: use columns 2:10 (9 "other" vars)
-    othevr32 = row_max_df(
-      pick(starts_with("othevr32"))[2:10]
+    now_oth20 = derive_drug_other_within(
+      starts_with("now_oth20") & !ends_with("raw")
     ),
-    now_oth32 = row_max_df(
-      pick(starts_with("now_oth32"))[2:10]
+    now_oth25 = derive_drug_other_within(
+      starts_with("now_oth25") & !ends_with("raw")
     ),
-    yr_oth32 = row_max_df(
-      pick(starts_with("yr_oth32"))[2:10]
+    now_oth32 = derive_drug_other_within(
+      starts_with("now_oth32") & !ends_with("raw")
     )
   )
 
+## Derive EVER used --------------------------------------------------------------------
 
-# Derive: Ever used
-drug_all <- drug_all %>%
+# Derive 'ever used' for cannabis and other drugs across sweeps.
+# The function takes indicators from each sweep (1 = reported EVER using drug, 0 = reported not EVER using drug)
+# and derives a single EVER indicator.
+# Coded as 1 = 'yes' if drug was EVER used.
+# Else, coded as 0 = 'no' if any sweep reported not EVER using drug (liberal).
+# Otherwise, missing values follow a hierarchy.
+derive_drug_ever_across <- function(cols) {
+  dplyr::case_when(
+    ## If any sweep reported as ever used -> 'yes' (1).
+    dplyr::if_any({{ cols }}, \(x) dplyr::coalesce(x == 1, FALSE)) ~ 1L,
+    ## ELSE: If any sweep reported as NOT having ever used -> 'no' (0).
+    dplyr::if_any({{ cols }}, \(x) x == 0) ~ 0L,
+    ## ELSE: If any -9 (refusal) -> -9.
+    dplyr::if_any({{ cols }}, \(x) dplyr::coalesce(x == -9, FALSE)) ~ -9L,
+    ## ELSE: If any -8 (dk/insufficient info) -> -8.
+    dplyr::if_any({{ cols }}, \(x) dplyr::coalesce(x == -8, FALSE)) ~ -8L,
+    ## ELSE: If any -1 (not applicable) -> -1.
+    dplyr::if_any({{ cols }}, \(x) dplyr::coalesce(x == -1, FALSE)) ~ -1L,
+    ## ELSE: -3 (not interviewed/asked etc.)
+    TRUE ~ -3L
+  )
+}
+
+drug_rec_ever <- drug_rec %>%
   mutate(
-    drgcnbevr = pmax(
-      canevr14,
-      canevr15,
-      canevr16,
-      canevr17,
-      canevr19,
-      canevr20,
-      canevr25,
-      canevr32,
-      na.rm = FALSE
+    drgcnbevr = derive_drug_ever_across(
+      starts_with("canevr") & !ends_with("raw")
     ),
-    drgothevr = pmax(othevr19, othevr20, othevr25, othevr32, na.rm = FALSE)
+    drgothevr = derive_drug_ever_across(c(
+      othevr19,
+      othevr20,
+      othevr25,
+      othevr32
+    ))
   )
 
-# Derive: First time use
+## Derive first time use --------------------------------------------------------------------
+
+# This variable will record the first known age of using cannabis/other drugs.
 first_wave_age <- c(14, 15, 16, 17, 19, 20, 25, 32)
 cann_vars <- c(
   "canevr14",
@@ -794,40 +881,38 @@ cann_vars <- c(
 )
 oth_vars <- c("othevr19", "othevr20", "othevr25", "othevr32")
 
-drug_all <- drug_all %>%
+drug_rec_first <- drug_rec_ever |>
   mutate(
-    # first time reported using cannabis (14-32)
     drgcnbfst = case_when(
-      canevr14 == 1 ~ 14,
-      canevr15 == 1 ~ 15,
-      canevr16 == 1 ~ 16,
-      canevr17 == 1 ~ 17,
-      canevr19 == 1 ~ 19,
-      canevr20 == 1 ~ 20,
-      canevr25 == 1 ~ 25,
-      canevr32 == 1 ~ 32,
-      all(is.na(canevr14:canevr32)) ~ -3,
-      rowSums(select(., canevr14:canevr32), na.rm = TRUE) == 0 ~ 99,
-      TRUE ~ -2
+      canevr14 == 1 ~ 14L,
+      canevr15 == 1 ~ 15L,
+      canevr16 == 1 ~ 16L,
+      canevr17 == 1 ~ 17L,
+      canevr19 == 1 ~ 19L,
+      canevr20 == 1 ~ 20L,
+      canevr25 == 1 ~ 25L,
+      canevr32 == 1 ~ 32L,
+
+      # conservative "never": all included sweeps are exactly 0
+      if_all(all_of(cann_vars), ~ .x == 0) ~ 99L,
+
+      .default = -3L
     ),
-    # first time reported using other drugs (19-32)
     drgothfst = case_when(
-      othevr19 == 1 ~ 19,
-      othevr20 == 1 ~ 20,
-      othevr25 == 1 ~ 25,
-      othevr32 == 1 ~ 32,
-      all(is.na(c_across(c(othevr19, othevr20, othevr25, othevr32)))) ~ -3,
-      rowSums(
-        select(., othevr19, othevr20, othevr25, othevr32),
-        na.rm = TRUE
-      ) ==
-        0 ~ 99,
-      TRUE ~ -2
+      othevr19 == 1 ~ 19L,
+      othevr20 == 1 ~ 20L,
+      othevr25 == 1 ~ 25L,
+      othevr32 == 1 ~ 32L,
+
+      if_all(all_of(oth_vars), ~ .x == 0) ~ 99L,
+
+      .default = -3L
     )
   )
 
-# Derive: Current use
-drug_all <- drug_all %>%
+## Derive current use --------------------------------------------------------------------
+
+drug_rec_current <- drug_rec_first %>%
   mutate(
     drgcnbnw19 = case_when(
       canevr19 == 0 ~ 0,
@@ -868,8 +953,9 @@ drug_all <- drug_all %>%
     )
   )
 
-# Final selection
-drug_final <- drug_all %>%
+# Add labels and select variables
+drug_all_clean <- drug_rec_current %>%
+  select(-ends_with("raw")) %>%
   mutate(
     across(
       c(drgcnbevr, drgothevr, starts_with("drgcnbnw"), starts_with("drgothnw")),
