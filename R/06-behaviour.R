@@ -1116,7 +1116,8 @@ spt_rec %>%
 spt_all <- spt_rec %>%
   select(NSID, spt14, spt15, spt17, spt19, spt20, spt25, spt32)
 
-# Absence --------------------------------------------------------------------
+# School absence --------------------------------------------------------------------
+
 # Load relevant sweep files and select variables
 absence_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>%
@@ -1130,7 +1131,12 @@ absence_vars <- list(
 )
 
 # Merge the datasets by NSID
-absence_all <- reduce(absence_vars, full_join, by = "NSID")
+absence_all <- reduce(absence_vars, full_join, by = "NSID") %>%
+  # Add '_raw' suffix to all variable names for simpler re-coding & cross-checks
+  rename_with(
+    .fn = ~ stringr::str_c(.x, "_raw"),
+    .cols = !contains("NSID")
+  )
 
 # Recode function for harmonised values
 recode_absence <- function(x) {
@@ -1139,22 +1145,21 @@ recode_absence <- function(x) {
     x == 2 ~ 0, # no
     x %in% c(-97, -92) ~ -9,
     x %in% c(-91) ~ -1,
-    x %in% c(-96, -1) ~ -8,
-    x %in% c(-998, -997, -995, -99) ~ -2,
-    is.na(x) ~ -3,
-    TRUE ~ -3
+    x %in% c(-1) ~ -8,
+    x %in% c(-998, -997, -995) ~ -2,
+    .default = -3
   )
 }
 
 # Apply recode to each sweep
-absence_all <- absence_all %>%
+absence_rec <- absence_all %>%
   mutate(
-    abs1m14 = recode_absence(abs1m14),
-    abs1m15 = recode_absence(abs1m15),
-    abs1m16 = recode_absence(abs1m16)
+    abs1m14 = recode_absence(abs1m14_raw),
+    abs1m15 = recode_absence(abs1m15_raw),
+    abs1m16 = recode_absence(abs1m16_raw)
   ) %>%
   mutate(across(
-    starts_with("abs1m"),
+    starts_with("abs1m") & !ends_with("raw"),
     ~ labelled(
       .x,
       labels = c(
@@ -1163,10 +1168,19 @@ absence_all <- absence_all %>%
         common_missing_labels
       )
     )
-  )) %>%
-  select(NSID, abs1m14, abs1m15, abs1m16)
+  ))
+
+absence_rec %>%
+  count(abs1m14_raw, abs1m14)
+
+absence_rec %>%
+  count(abs1m15_raw, abs1m15)
+
+absence_rec %>%
+  count(abs1m16_raw, abs1m16)
 
 # Suspended/Expelled --------------------------------------------------------------------
+
 # Load suspension and expulsion variables from each sweep
 suspend_expel_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>%
@@ -1180,7 +1194,12 @@ suspend_expel_vars <- list(
 )
 
 # Merge all datasets by NSID
-suspend_expel_all <- reduce(suspend_expel_vars, full_join, by = "NSID")
+suspend_expel_all <- reduce(suspend_expel_vars, full_join, by = "NSID") %>%
+  # Add '_raw' suffix to all variable names for simpler re-coding & cross-checks
+  rename_with(
+    .fn = ~ stringr::str_c(.x, "_raw"),
+    .cols = !contains("NSID")
+  )
 
 # Recode function
 recode_school_discipline <- function(x) {
@@ -1189,7 +1208,7 @@ recode_school_discipline <- function(x) {
     x == 2 ~ 0, # no
     x %in% c(-97, -92) ~ -9,
     x %in% c(-91) ~ -1,
-    x %in% c(-96, -1) ~ -8,
+    x %in% c(-1) ~ -8,
     x %in% c(-99) ~ -3,
     is.na(x) ~ -3,
     TRUE ~ -3
@@ -1197,19 +1216,22 @@ recode_school_discipline <- function(x) {
 }
 
 # Apply recoding
-suspend_expel_all <- suspend_expel_all %>%
+suspend_expel_rec <- suspend_expel_all %>%
   mutate(
-    susp14 = recode_school_discipline(susp14),
-    susp15 = recode_school_discipline(susp15),
-    susp16 = recode_school_discipline(susp16),
-    susp17 = recode_school_discipline(susp17),
-    expl14 = recode_school_discipline(expl14),
-    expl15 = recode_school_discipline(expl15),
-    expl16 = recode_school_discipline(expl16),
-    expl17 = recode_school_discipline(expl17)
+    susp14 = recode_school_discipline(susp14_raw),
+    susp15 = recode_school_discipline(susp15_raw),
+    susp16 = recode_school_discipline(susp16_raw),
+    susp17 = recode_school_discipline(susp17_raw),
+    expl14 = recode_school_discipline(expl14_raw),
+    expl15 = recode_school_discipline(expl15_raw),
+    expl16 = recode_school_discipline(expl16_raw),
+    expl17 = recode_school_discipline(expl17_raw)
   ) %>%
   mutate(across(
-    c(starts_with("abs1m"), starts_with("expl")),
+    c(
+      starts_with("susp") & !ends_with("raw"),
+      starts_with("expl") & !ends_with("raw")
+    ),
     ~ labelled(
       .x,
       labels = c(
@@ -1218,7 +1240,27 @@ suspend_expel_all <- suspend_expel_all %>%
         common_missing_labels
       )
     )
-  )) %>%
+  ))
+
+# Cross-tabs
+suspend_expel_rec %>%
+  count(susp14_raw, susp14)
+suspend_expel_rec %>%
+  count(susp15_raw, susp15)
+suspend_expel_rec %>%
+  count(susp16_raw, susp16)
+suspend_expel_rec %>%
+  count(susp17_raw, susp17)
+suspend_expel_rec %>%
+  count(expl14_raw, expl14)
+suspend_expel_rec %>%
+  count(expl15_raw, expl15)
+suspend_expel_rec %>%
+  count(expl16_raw, expl16)
+suspend_expel_rec %>%
+  count(expl17_raw, expl17)
+
+suspend_expel_all <- suspend_expel_rec %>%
   select(NSID, starts_with("susp"), starts_with("expl"))
 
 # Truancy --------------------------------------------------------------------
@@ -1245,13 +1287,13 @@ recode_truancy_early <- function(ever, type) {
     type == 2 ~ 2, # several days at a time
     type == 3 ~ 3, # particular days or lessons
     type == 4 ~ 4, # odd day or lesson
-    type %in% c(-96, -1) ~ -8,
-    type %in% c(-97, -92) ~ -9,
-    type %in% c(-99) ~ -3,
-    type %in% c(-91) ~ -1,
-    is.na(type) & ever == 1 ~ -2,
-    is.na(type) & is.na(ever) ~ -3,
-    TRUE ~ -3
+    # If missing, use hierarchy derived from both ever and type:
+    # Else if either is refusal -> refusal (-9)
+    ever %in% c(-92, -97) | type %in% c(-92, -97) ~ -9,
+    # Else if either is don't know / insufficient info -> -8
+    ever == -1 | type == -1 ~ -8,
+    # Else is not interviewed/asked etc. -> -3
+    .default = -3
   )
 }
 
@@ -1263,7 +1305,7 @@ recode_truancy_s4 <- function(x) {
     x == 2 ~ 2,
     x == 3 ~ 3,
     x == 4 ~ 4,
-    x %in% c(-96, -1) ~ -8,
+    x %in% c(-1) ~ -8,
     x %in% c(-97, -92) ~ -9,
     x == -99 ~ -3,
     x == -91 ~ -1,
@@ -1273,7 +1315,7 @@ recode_truancy_s4 <- function(x) {
 }
 
 # Apply recoding
-truancy_all <- truancy_all %>%
+truancy_rec <- truancy_all %>%
   mutate(
     trua14 = recode_truancy_early(trua14_ever, trua14_type),
     trua15 = recode_truancy_early(trua15_ever, trua15_type),
@@ -1281,7 +1323,7 @@ truancy_all <- truancy_all %>%
     trua17 = recode_truancy_s4(trua17_raw)
   ) %>%
   mutate(across(
-    starts_with("trua"),
+    c(trua14, trua15, trua16, trua17),
     ~ labelled(
       .x,
       labels = c(
@@ -1293,7 +1335,22 @@ truancy_all <- truancy_all %>%
         common_missing_labels
       )
     )
-  )) %>%
+  ))
+
+# Cross-tabs
+truancy_rec %>%
+  count(trua14_ever, trua14_type, trua14)
+
+truancy_rec %>%
+  count(trua15_ever, trua15_type, trua15)
+
+truancy_rec %>%
+  count(trua16_ever, trua16_type, trua16)
+
+truancy_rec %>%
+  count(trua17, trua17_raw)
+
+truancy_all <- truancy_rec %>%
   select(NSID, trua14, trua15, trua16, trua17)
 
 # Police Contact --------------------------------------------------------------------
