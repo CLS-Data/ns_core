@@ -1654,15 +1654,16 @@ police_all <- police_rec_guilty %>%
     starts_with("polpnd")
   )
 
-# Bully --------------------------------------------------------------------
+# Bullying --------------------------------------------------------------------
+
 # Load and harmonise bullying variables across sweeps 1–4, 7–8
 bully_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>%
-    select(NSID, bul14 = W1bulrc),
+    select(NSID, bul14_raw = W1bulrc),
   S2 = ns_data[["S2youngperson"]] %>%
-    select(NSID, bul15 = W2bulrc),
+    select(NSID, bul15_raw = W2bulrc),
   S3 = ns_data[["S3youngperson"]] %>%
-    select(NSID, bul16 = W3bulrc),
+    select(NSID, bul16_raw = W3bulrc),
   S4 = ns_data[["S4youngperson"]] %>%
     select(
       NSID,
@@ -1688,57 +1689,60 @@ recode_yesno <- function(x) {
     x == 1 ~ 1,
     x == 2 ~ 0,
     x %in% c(-92, -97) ~ -9,
-    x %in% c(-96, -8) ~ -8,
-    x == -99 ~ -3,
-    is.na(x) ~ -3,
-    TRUE ~ -2
+    x %in% c(-8, -1) ~ -8,
+    .default = -3
   )
 }
 
 # Apply recodes
-bully_all <- bully_all %>%
+bully_rec <- bully_all %>%
   mutate(
-    bul14 = recode_yesno(bul14),
-    bul15 = recode_yesno(bul15),
-    bul16 = recode_yesno(bul16),
+    bul14 = recode_yesno(bul14_raw),
+    bul15 = recode_yesno(bul15_raw),
+    bul16 = recode_yesno(bul16_raw),
     bul17 = case_when(
-      rowSums(across(starts_with("bul17_")) == 1, na.rm = TRUE) > 0 ~ 1,
-      rowSums(
-        across(c("bul17_1", "bul17_2", "bul17_4", "bul17_5", "bul17_6")) == 2,
-        na.rm = TRUE
-      ) ==
-        5 ~ 0,
-      rowSums(
-        across(c("bul17_1", "bul17_2", "bul17_4", "bul17_5", "bul17_6")) < 0,
-        na.rm = TRUE
-      ) >
-        0 ~ -8,
-      rowSums(is.na(across(starts_with("bul17_")))) == 6 ~ -3,
-      TRUE ~ -2
+      # If any of the 6 indicators of bullying in S4 is reported as "yes" (1) -> bullied (1)
+      if_any(starts_with("bul17_"), ~ .x == 1) ~ 1,
+      # Else if all 6 indicators of bullying in S4 are reported as "no" (2) -> not bullied (0)
+      if_all(starts_with("bul17_"), ~ .x == 2) ~ 0,
+      # Else if any of the 6 indicators of bullying in S4 is refused (-92, -97) -> refused (-9)
+      if_any(starts_with("bul17_"), ~ .x == -92 | .x == -97) ~ -9,
+      # Else if any of the 6 indicators of bullying in S4 is don't know/insufficient info (-1) -> -8
+      if_any(starts_with("bul17_"), ~ .x == -1) ~ -8,
+      # Else if any of the 6 indicators of bullying in S4 is not applicable (-91) -> not applicable (-1)
+      if_any(starts_with("bul17_"), ~ .x == -91) ~ -1,
+      # Else -> -3 (i.e. not interviewed/asked etc.)
+      .default = -3
     ),
     bul20 = case_when(
-      rowSums(
-        across(starts_with("W7BullyTypeYP0")) > 0 &
-          across(starts_with("W7BullyTypeYP0")) < 8,
-        na.rm = TRUE
-      ) >
-        0 ~ 1,
-      rowSums(across(starts_with("W7BullyTypeYP0")) == 8, na.rm = TRUE) ==
-        6 ~ 0,
-      rowSums(across(starts_with("W7BullyTypeYP0")) < 0, na.rm = TRUE) > 0 ~ -8,
-      rowSums(is.na(across(starts_with("W7BullyTypeYP0")))) == 6 ~ -3,
-      TRUE ~ -2
+      # If any of the indicators of bullying in S7 reported as between 1 (every day) and 7 (<once a month) -> bullied (1)
+      if_any(starts_with("W7BullyTypeYP0"), ~ .x %in% 1:7) ~ 1,
+      # Else if all of the indicators of bullying in S7 are reported as 8 (never) -> not bullied (0)
+      if_all(starts_with("W7BullyTypeYP0"), ~ .x == 8) ~ 0,
+      # Else if any of the indicators of bullying in S7 is refused (-92, -97) -> refused (-9)
+      if_any(starts_with("W7BullyTypeYP0"), ~ .x %in% c(-92, -97)) ~ -9,
+      # Else if any of the indicators of bullying in S7 is not applicable (-91) -> -1
+      if_any(starts_with("W7BullyTypeYP0"), ~ .x == -91) ~ -1,
+      # Else -> -3 (i.e. not interviewed/asked etc.)
+      .default = -3
     ),
     bul25 = case_when(
-      rowSums(across(starts_with("W8BULLYTYPE0")) == 1, na.rm = TRUE) > 0 ~ 1,
-      rowSums(across(starts_with("W8BULLYTYPE0")) == 2, na.rm = TRUE) == 7 ~ 0,
-      rowSums(across(starts_with("W8BULLYTYPE0")) < 0, na.rm = TRUE) > 0 ~ -8,
-      rowSums(is.na(across(starts_with("W8BULLYTYPE0")))) == 7 ~ -3,
-      TRUE ~ -2
+      # If any of the indicators of bullying in S8 reported as 1 (yes) -> bullied (1),
+      if_any(starts_with("W8BULLYTYPE0"), ~ .x == 1) ~ 1,
+      # Else if all of the indicators of bullying in S8 are reported as 2 (no) -> not bullied (0)
+      if_all(starts_with("W8BULLYTYPE0"), ~ .x == 2) ~ 0,
+      # Else if any of the indicators of bullying in S8 is refused (-9) -> refused (-9)
+      if_any(starts_with("W8BULLYTYPE0"), ~ .x == -9) ~ -9,
+      # Else if any of the indicators of bullying in S8 is don't know/insufficient info (-8) -> -8
+      if_any(starts_with("W8BULLYTYPE0"), ~ .x == -8) ~ -8,
+      # Else if any of the indicators of bullying in S8 is not applicable (-1) -> not applicable (-1)
+      if_any(starts_with("W8BULLYTYPE0"), ~ .x == -1) ~ -1,
+      # Else if any of the indicators of bullying in S8 is not interviewed/asked etc. (-3) -> -3
+      if_any(starts_with("W8BULLYTYPE0"), ~ .x == -3) ~ -3
     )
   ) %>%
   mutate(across(
-    starts_with("bul"),
+    starts_with("bul") & !ends_with("raw"),
     ~ labelled(
       .x,
       labels = c(
@@ -1747,5 +1751,15 @@ bully_all <- bully_all %>%
         common_missing_labels
       )
     )
-  )) %>%
+  ))
+
+# Cross-tabs
+bully_rec %>%
+  count(bul14_raw, bul14)
+bully_rec %>%
+  count(bul15_raw, bul15)
+bully_rec %>%
+  count(bul16_raw, bul16)
+
+bully_all <- bully_rec %>%
   select(NSID, bul14, bul15, bul16, bul17, bul20, bul25)
