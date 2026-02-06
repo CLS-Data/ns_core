@@ -1179,6 +1179,9 @@ absence_rec %>%
 absence_rec %>%
   count(abs1m16_raw, abs1m16)
 
+absence_all <- absence_rec %>%
+  select(NSID, starts_with("abs1m") & !ends_with("raw"))
+
 # Suspended/Expelled --------------------------------------------------------------------
 
 # Load suspension and expulsion variables from each sweep
