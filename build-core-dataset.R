@@ -58,26 +58,24 @@ long_vars <- read_dta(file.path(data_path, sweeps$longitudinal)) %>%
         W8OUTCOME,
         W9OUTCOME
       ),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(1, 2, 3, 4, 5, 6, -1),
         labels = c(
-          "Productive",
-          "Refusal",
-          "Non-contact and other unproductive",
-          "Ineligible",
-          "Untraced",
-          "Not issued",
-          "No contact"
+          "Productive" = 1,
+          "Refusal" = 2,
+          "Non-contact and other unproductive" = 3,
+          "Ineligible" = 4,
+          "Untraced" = 5,
+          "Not issued" = 6,
+          "No contact" = -1
         )
       )
     ),
-    DATA_AVAILABILITY = factor(
+    DATA_AVAILABILITY = labelled(
       DATA_AVAILABILITY,
-      levels = c(0, 1),
-      labels = c("Not available", "Available for research")
+      labels = c("Not available" = 0, "Available for research" = 1)
     ),
-    MAINBOOST = factor(MAINBOOST, levels = c(1, 2), labels = c("Main", "Boost"))
+    MAINBOOST = labelled(MAINBOOST, labels = c("Main" = 1, "Boost" = 2))
   )
 
 # Merge All Datasets --------------------------------------------------------------------
