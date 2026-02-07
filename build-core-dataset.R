@@ -1,4 +1,5 @@
 # Source scripts --------------------------------------------------------------------
+
 # This part runs all scripts in the 'R' folder, which process and derive variables for each domain.
 source("R/00-load-raw-data.R", echo = TRUE)
 source("R/01-demographic.R", echo = TRUE)
@@ -9,6 +10,7 @@ source("R/05-anthropometric.R", echo = TRUE)
 source("R/06-behaviour.R", echo = TRUE)
 
 # Longitudinal Dataset --------------------------------------------------------------------
+
 # prepare for the longitudinal dataset by merging all derived variables
 long_vars <- read_dta(file.path(data_path, sweeps$longitudinal)) %>%
   select(
@@ -56,26 +58,24 @@ long_vars <- read_dta(file.path(data_path, sweeps$longitudinal)) %>%
         W8OUTCOME,
         W9OUTCOME
       ),
-      ~ factor(
+      ~ labelled(
         .x,
-        levels = c(1, 2, 3, 4, 5, 6, -1),
         labels = c(
-          "Productive",
-          "Refusal",
-          "Non-contact and other unproductive",
-          "Ineligible",
-          "Untraced",
-          "Not issued",
-          "No contact"
+          "Productive" = 1,
+          "Refusal" = 2,
+          "Non-contact and other unproductive" = 3,
+          "Ineligible" = 4,
+          "Untraced" = 5,
+          "Not issued" = 6,
+          "No contact" = -1
         )
       )
     ),
-    DATA_AVAILABILITY = factor(
+    DATA_AVAILABILITY = labelled(
       DATA_AVAILABILITY,
-      levels = c(0, 1),
-      labels = c("Not available", "Available for research")
+      labels = c("Not available" = 0, "Available for research" = 1)
     ),
-    MAINBOOST = factor(MAINBOOST, levels = c(1, 2), labels = c("Main", "Boost"))
+    MAINBOOST = labelled(MAINBOOST, labels = c("Main" = 1, "Boost" = 2))
   )
 
 # Merge All Datasets --------------------------------------------------------------------
@@ -111,7 +111,7 @@ derived_vars <- list(
   lsi_all,
   smoking_all,
   alc_all_clean,
-  drug_final,
+  drug_all_clean,
   spt_all,
   absence_all,
   suspend_expel_all,
@@ -142,6 +142,22 @@ derived_all <- derived_all %>%
       all_of(new_vars[sapply(derived_all[new_vars], is.factor)]),
       ~ forcats::fct_expand(.x, "Data not available") |>
         tidyr::replace_na("Data not available")
+    )
+  )
+
+# Append -5 label for labelled variables
+derived_all <- derived_all |>
+  dplyr::mutate(
+    dplyr::across(
+      dplyr::where(haven::is.labelled),
+      ~ {
+        # Only touch variables that actually contain -5
+        if (any(.x == -5L, na.rm = TRUE)) {
+          labelled::add_value_labels(.x, "Data not available" = -5L)
+        } else {
+          .x
+        }
+      }
     )
   )
 
