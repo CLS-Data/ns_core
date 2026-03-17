@@ -552,8 +552,9 @@ parent_edu_all <- parent_edu_all %>%
       ~ case_when(
         .x == -92 ~ -9,
         .x == -91 ~ -1,
-        .x %in% c(-98) ~ -3,
-        .x %in% c(-999, -99, -94) ~ -2,
+        .x %in% c(-99, -98) ~ -3, # Not interviewed / present
+        .x == -999 ~ -2, # Household data lost
+        .x == -94 ~ -8, # Insufficient information
         TRUE ~ .x
       )
     )
