@@ -1,4 +1,14 @@
+# Prerequisite: 00-load-raw-data.R (this script also sources helpers.R)
+#
+# If you are running this script on its own, please run the following first
+# from the project root:
+#
+# source(here::here("R", "00-load-raw-data.R"))
+#
+# or manually run 00-load-raw-data.R before this script.
+
 # Smoke --------------------------------------------------------------------
+
 # Load smoking data from relevant sweeps
 smoking_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>%
@@ -188,8 +198,14 @@ alc_all <- alc_all |>
     ever32 = if_else(audita32 > 1, 32, NA_real_),
 
     first_age_raw = pmin(
-      ever14, ever15, ever16, ever17,
-      ever19, ever20, ever25, ever32,
+      ever14,
+      ever15,
+      ever16,
+      ever17,
+      ever19,
+      ever20,
+      ever25,
+      ever32,
       na.rm = TRUE
     ),
     first_age_raw = if_else(
@@ -209,9 +225,11 @@ alc_all <- alc_all |>
         alcever_S7 == 2,
         audita25 == 1,
         audita32 == 1
-      ) == FALSE,
+      ) ==
+        FALSE,
       na.rm = TRUE
-    ) == 0,
+    ) ==
+      0,
 
     alcfst = case_when(
       !is.na(first_age_raw) ~ first_age_raw,
