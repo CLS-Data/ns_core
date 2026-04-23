@@ -396,35 +396,44 @@ alc_first_age_rec <- alc_first_age_rec %>%
 ## Alcohol frequency --------------------------------------------------------------------
 
 # Helpers
-recode_freq <- function(x, sweep, ever) {
+# Two coding schemes for the alcohol-frequency question.
+# S2/S3/S4 use a 6-level scale; S6/S7 use an 8-level scale with an extra
+# raw code (-997) for 'script error/information lost'. Substantive and
+# missing-code handling differ so the two schemes are best kept as
+# separate functions.
+
+# S2/S3/S4: ages 15, 16, 17.
+recode_freq_early <- function(x, ever) {
   case_when(
-    sweep %in% c("S2", "S3", "S4") ~ case_when(
-      x == 1 ~ 4, # most days
-      x == 2 ~ 3, # once or twice a week
-      x %in% c(3, 4) ~ 2, # once to three times a month
-      x == 5 ~ 1, # once every couple of month
-      x == 6 ~ 0, # less often/not at all
-      ever == 2 ~ 0, # less often/not at all
-      # Missing  values:
-      x %in% c(-97, -92) | ever %in% c(-97, -92) ~ -9, # refusal if either refused,
-      x == -1 | ever == -1 ~ -8, # dk/missing info
-      x == -91 | ever == -91 ~ -1, # not applicable
-      .default = -3
-    ),
-    sweep %in% c("S6", "S7") ~ case_when(
-      x %in% c(1, 2) ~ 4,
-      x %in% c(3, 4) ~ 3,
-      x == 5 ~ 2,
-      x == 6 ~ 1,
-      x %in% c(7, 8) ~ 0,
-      ever == 2 ~ 0,
-      x == -997 ~ -2,
-      # Missing  values:
-      x %in% c(-97, -92) | ever %in% c(-97, -92) ~ -9, # refusal if either refused,
-      x == -1 | ever == -1 ~ -8, # dk/missing info
-      x == -91 | ever == -91 ~ -1, # not applicable
-      .default = -3
-    )
+    x == 1 ~ 4, # most days
+    x == 2 ~ 3, # once or twice a week
+    x %in% c(3, 4) ~ 2, # once to three times a month
+    x == 5 ~ 1, # once every couple of month
+    x == 6 ~ 0, # less often/not at all
+    ever == 2 ~ 0, # less often/not at all
+    # Missing  values:
+    x %in% c(-97, -92) | ever %in% c(-97, -92) ~ -9, # refusal if either refused,
+    x == -1 | ever == -1 ~ -8, # dk/missing info
+    x == -91 | ever == -91 ~ -1, # not applicable
+    .default = -3
+  )
+}
+
+# S6/S7: ages 19, 20.
+recode_freq_late <- function(x, ever) {
+  case_when(
+    x %in% c(1, 2) ~ 4,
+    x %in% c(3, 4) ~ 3,
+    x == 5 ~ 2,
+    x == 6 ~ 1,
+    x %in% c(7, 8) ~ 0,
+    ever == 2 ~ 0,
+    x == -997 ~ -2,
+    # Missing  values:
+    x %in% c(-97, -92) | ever %in% c(-97, -92) ~ -9, # refusal if either refused,
+    x == -1 | ever == -1 ~ -8, # dk/missing info
+    x == -91 | ever == -91 ~ -1, # not applicable
+    .default = -3
   )
 }
 
@@ -449,11 +458,11 @@ alc_freq_rec <- alc_first_age_rec %>%
       alcfreq_S1 == -91 | alcmon_S1 == -91 | alcever_S1 == -91 ~ -1, # not applicable
       .default = -3
     ),
-    alcfreq15 = recode_freq(alcfreq_S2, "S2", alcever_S2),
-    alcfreq16 = recode_freq(alcfreq_S3, "S3", alcever_S3),
-    alcfreq17 = recode_freq(alcfreq_S4, "S4", alcever_S4),
-    alcfreq19 = recode_freq(alcfreq_S6, "S6", alcever_S6),
-    alcfreq20 = recode_freq(alcfreq_S7, "S7", alcever_S7),
+    alcfreq15 = recode_freq_early(alcfreq_S2, alcever_S2),
+    alcfreq16 = recode_freq_early(alcfreq_S3, alcever_S3),
+    alcfreq17 = recode_freq_early(alcfreq_S4, alcever_S4),
+    alcfreq19 = recode_freq_late(alcfreq_S6, alcever_S6),
+    alcfreq20 = recode_freq_late(alcfreq_S7, alcever_S7),
   ) %>%
   # Add labels
   mutate(
