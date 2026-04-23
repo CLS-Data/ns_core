@@ -832,15 +832,18 @@ drug_rec <- drug_rec |>
 # Derive 'ever used' for cannabis and other drugs across sweeps.
 # The function takes indicators from each sweep (1 = reported EVER using drug, 0 = reported not EVER using drug)
 # and derives a single EVER indicator.
-# Coded as 1 = 'yes' if drug was EVER used.
-# Else, coded as 0 = 'no' if any sweep reported not EVER using drug (liberal).
+# Coded as 1 = 'yes' if ANY sweep reported ever using the drug.
+# Coded as 0 = 'no' only if ALL included sweeps reported NOT ever using the drug
+#   (i.e. requires a non-missing 'no' at every sweep that asked). This matches
+#   the "never" rule used by drgcnbfst / drgothfst so the two derivations are
+#   consistent.
 # Otherwise, missing values follow a hierarchy.
 derive_drug_ever_across <- function(cols) {
   dplyr::case_when(
     ## If any sweep reported as ever used -> 'yes' (1).
     dplyr::if_any({{ cols }}, \(x) dplyr::coalesce(x == 1, FALSE)) ~ 1L,
-    ## ELSE: If any sweep reported as NOT having ever used -> 'no' (0).
-    dplyr::if_any({{ cols }}, \(x) x == 0) ~ 0L,
+    ## ELSE: If ALL sweeps reported as NOT having ever used -> 'no' (0).
+    dplyr::if_all({{ cols }}, \(x) dplyr::coalesce(x == 0, FALSE)) ~ 0L,
     ## ELSE: If any -9 (refusal) -> -9.
     dplyr::if_any({{ cols }}, \(x) dplyr::coalesce(x == -9, FALSE)) ~ -9L,
     ## ELSE: If any -8 (dk/insufficient info) -> -8.
