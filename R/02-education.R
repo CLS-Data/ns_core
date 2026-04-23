@@ -423,9 +423,13 @@ educ_all_rec <- educ_all %>%
       W9VCQUAG == 1 ~ 33,
       W9VCQUAH == 1 ~ -8,
       W9VCQUAI == 1 ~ -9,
-      if_all(starts_with("W9VCQU"), ~ .x == -1) ~ -1,
-      if_all(starts_with("W9VCQU"), ~ .x == 2) ~ 33,
-      if_all(starts_with("W9VCQU"), ~ is.na(.x) | .x == -3) ~ -3
+      # Held vocational columns are W9VCQU0A..0Z and W9VCQUAA..AI.
+      # "Currently studying" columns (W9VCQUC0A..CAI) also start with
+      # "W9VCQU"; the [^C] regex excludes them so the fallbacks fire on
+      # the intended 35 columns only.
+      if_all(matches("^W9VCQU[^C]"), ~ .x == -1) ~ -1,
+      if_all(matches("^W9VCQU[^C]"), ~ .x == 2) ~ 33,
+      if_all(matches("^W9VCQU[^C]"), ~ is.na(.x) | .x == -3) ~ -3
     )
   ) %>%
   mutate(
