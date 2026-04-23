@@ -307,8 +307,10 @@ nssec_vars <- list(
     select(NSID, nssec20 = W7NSSECCat),
   S8 = ns_data[["S8derivedvariable"]] %>%
     select(NSID, nssec25 = W8DNSSEC17, ecoactadu25 = W8DACTIVITYC),
-  S9 = ns_data[["S9maininterview"]] %>%
-    select(NSID, nssec32 = W9NSSEC)
+  S9main = ns_data[["S9maininterview"]] %>%
+    select(NSID, nssec32 = W9NSSEC),
+  S9deriv = ns_data[["S9derivedvariable"]] %>%
+    select(NSID, ecoactadu32 = W9DACTIVITYC)
 )
 
 # Merge all NS-SEC variables by NSID
@@ -439,9 +441,17 @@ nssec_rec <- nssec_all %>%
       nssec25_raw == -1 ~ -1,
     ),
     ## Sweep 9 (age 32)
+    # Raw W9NSSEC does include label for value 15 ("Full-time student"), but in practice
+    # no S9 respondents are coded there. Instead students have been absorbed into either
+    # 14 ("Never worked / long-term unemployed") or -1 ("Not applicable"). The full-time student status
+    # is therefore taken from the S9 activity variable (analogue of the S8 approach):
+    # valid occupation codes 1-13 are prioritised. If not present or coded as not working (14) or other,
+    # then full time students are identified via the activity variable and assigned a separate category.
     nssec32 = case_when(
       is.na(nssec32_raw) ~ -3,
-      nssec32_raw %in% 1:17 ~ nssec32_raw,
+      nssec32_raw %in% 1:13 ~ nssec32_raw,
+      ecoactadu32 == 5 ~ 15, # full-time student
+      nssec32_raw %in% c(14, 16, 17) ~ nssec32_raw, # otherwise keep the other codes (not working, occupation not stated, not classifiable)
       nssec32_raw == -9 ~ -9,
       nssec32_raw == -8 ~ -8,
       nssec32_raw == -1 ~ -1
