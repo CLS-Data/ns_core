@@ -130,7 +130,6 @@ educaim_groups_s8 <- list(
     "W8ACQUC0M",
     "W8VCQUC0A",
     "W8VCQUC0B",
-    "W8VCQUC0C",
     "W8VCQUC0E",
     "W8VCQUC0F",
     "W8VCQUC0G",
@@ -140,7 +139,10 @@ educaim_groups_s8 <- list(
     "W8VCQUC0M",
     "W8VCQUC0N"
   ),
-  entry_none = c("W8VCQUC0D"),
+  # W8VCQUC0C ("Basic skills") moved here: GOV.UK qualification framework
+  # places basic/functional skills at entry-to-Level 1, so this is
+  # mapped to None/entry.
+  entry_none = c("W8VCQUC0C", "W8VCQUC0D"),
   other = c("W8ACQUC0N", "W8VCQUC0O"),
   none_of_these = c("W8ACQUC0O", "W8VCQUC0P"),
   dont_know = c("W8ACQUC0P", "W8VCQUC0Q"),
@@ -332,7 +334,6 @@ educ_all_rec <- educ_all %>%
       W8DHANVQH %in% c(1, 2, 3) ~ 1,
       W8VCQU0A == 1 |
         W8VCQU0B == 1 |
-        W8VCQU0C == 1 |
         W8VCQU0E == 1 |
         W8VCQU0F == 1 |
         W8VCQU0G == 1 |
@@ -341,7 +342,10 @@ educ_all_rec <- educ_all %>%
         W8VCQU0L == 1 |
         W8VCQU0M == 1 |
         W8VCQU0N == 1 ~ 1,
-      W8VCQU0D == 1 | W8VCQU0P == 1 ~ 2,
+      # W8VCQU0C ("Basic skills") moved here: GOV.UK qualification framework
+      # places basic/functional skills at entry-to-Level 1, so this is
+      # mapped to None/entry.
+      W8VCQU0C == 1 | W8VCQU0D == 1 | W8VCQU0P == 1 ~ 2,
       W8DHANVQH == 95 ~ 3,
       W8VCQU0O == 1 ~ 3,
       W8DHANVQH == 96 ~ 4,
