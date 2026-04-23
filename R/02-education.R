@@ -184,6 +184,8 @@ educaim_groups_s9 <- list(
     "W9VCQUC0G",
     "W9VCQUC0H",
     "W9VCQUC0I",
+    "W9VCQUC0J", # GNVQ Level 2 -> NVQ Level 2 per S9 user guide p.82
+    "W9VCQUC0K", # GNVQ Foundation -> NVQ Level 1 per S9 user guide p.82
     "W9VCQUC0L",
     "W9VCQUC0M",
     "W9VCQUC0N",
