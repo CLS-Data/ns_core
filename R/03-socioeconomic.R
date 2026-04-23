@@ -290,7 +290,11 @@ ecoactDT_crosstabs %>%
 
 # Extract variables
 ecoactDT_parents_all <- ecoactDT_parents_rec %>%
-  select(NSID, starts_with("ecoactdtma"), starts_with("ecoactdtpa"))
+  select(
+    NSID,
+    starts_with("ecoactdtma") & !ends_with("_raw"),
+    starts_with("ecoactdtpa") & !ends_with("_raw")
+  )
 
 # NS-SEC Own --------------------------------------------------------------------
 
