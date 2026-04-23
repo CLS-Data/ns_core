@@ -1276,7 +1276,11 @@ suspend_expel_rec %>%
   count(expl17_raw, expl17)
 
 suspend_expel_all <- suspend_expel_rec %>%
-  select(NSID, starts_with("susp"), starts_with("expl"))
+  select(
+    NSID,
+    starts_with("susp") & !ends_with("_raw"),
+    starts_with("expl") & !ends_with("_raw")
+  )
 
 # Truancy --------------------------------------------------------------------
 # Load original variables from S1–S4
