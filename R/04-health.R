@@ -504,7 +504,7 @@ recode_gheateen <- function(x, keep = 1:4, adjust = 0) {
     x %in% keep ~ as.integer(x + adjust),
     x %in% c(-998, -997, -995, -94) ~ -2L,
     x %in% c(-99, -96) ~ -3L,
-    x %in% c(-96, -1) ~ -8L,
+    x == -1 ~ -8L,
     x %in% c(-92, -97) ~ -9L,
     x == -91 ~ -1L,
     .default = -3L
