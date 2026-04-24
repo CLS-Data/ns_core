@@ -34,7 +34,7 @@ Depending on your needs, you can either rebuild the full derived dataset, or jus
 
 ### Setting up the raw data
 
-Download Study 5545 (Next Steps, End User Licence) from the [**UK Data Service**](https://datacatalogue.ukdataservice.ac.uk/studies/study/5545#details) in Stata 13 (`.dta`) format, then unzip it.
+Download Study 5545 (Next Steps, End User Licence) from the [**UK Data Service**](https://datacatalogue.ukdataservice.ac.uk/studies/study/5545#details) in Stata (`.dta`) format, then unzip it.
 
 Unzipping the file should give you the `UKDA-5545-stata` folder with the datasets. You can either place this folder in `data/` (which will replace the empty `UKDA-5545-stata` counterpart from this repo). Alternatively, find the `.dta` files and place them directly in the relevant subfolder (that is, `data/UKDA-5545-stata/stata/stata13/safeguarded_eul/`).
 
