@@ -1,5 +1,7 @@
-/data/
-/data_clean/
+# Data folders: include directory structure but never the data
+/data/**
+!/data/**/
+!/data/**/.gitkeep
 /.Rhistory
 .DS_Store
 
