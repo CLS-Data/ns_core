@@ -7,7 +7,7 @@
 #
 # or manually run 00-load-raw-data.R before this script.
 
-# GHQ --------------------------------------------------------------------
+# General Health Questionnaire --------------------------------------------------------------------
 # Load GHQ-12 derived score and item-level data
 ghq_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>% select(NSID),
@@ -244,7 +244,7 @@ lsat_rec <- lsat_all %>%
       TRUE ~ -2
     ),
     lsat32 = case_when(
-      lsat32_raw %in% 1:5 ~ lsat32_raw,
+      lsat32_raw %in% 1:5 ~ 6 - lsat32_raw, # reverse coded 
       lsat32_raw == -9 ~ -9,
       lsat32_raw == -8 ~ -8,
       lsat32_raw == -1 ~ -1,
@@ -353,7 +353,7 @@ sharm_rec %>%
 sharm_all <- sharm_rec %>%
   select(NSID, sharm25)
 
-# GAD --------------------------------------------------------------------
+# Generalized Anxiety Disorder --------------------------------------------------------------------
 # Load GAD-7 derived score and item-level data
 gad_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>%
@@ -394,7 +394,7 @@ gad_rec %>%
 gad_all <- gad_rec %>%
   select(NSID, gad32)
 
-# PHQ --------------------------------------------------------------------
+# Patient Health Questionnaire --------------------------------------------------------------------
 # Load GAD-7 derived score and item-level data
 phq_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>%
