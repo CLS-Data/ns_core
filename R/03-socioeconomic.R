@@ -296,7 +296,7 @@ ecoactDT_parents_all <- ecoactDT_parents_rec %>%
     starts_with("ecoactdtpa") & !ends_with("_raw")
   )
 
-# NS-SEC Own --------------------------------------------------------------------
+# National Statistics Socio-economic classification Own --------------------------------------------------------------------
 
 # Import NS-SEC variables from relevant sweeps
 nssec_vars <- list(
@@ -517,7 +517,7 @@ nssec_crosstabs %>%
 nssec_all <- nssec_rec %>%
   select(NSID, nssec17, nssec18, nssec19, nssec20, nssec25, nssec32)
 
-# NS-SEC Parents --------------------------------------------------------------------
+# National Statistics Socio-economic classification Parents --------------------------------------------------------------------
 
 # Load and select parental NS-SEC variables from Sweeps 1–5
 nssec_parents_vars <- list(
@@ -1237,7 +1237,7 @@ hh_income_rec <- hh_income_all %>%
 hh_income_all <- hh_income_rec %>%
   select(NSID, incwhh14, incwhh15, incwhhcnt14, incwhhcnt15, incwhh16, incwhh17)
 
-# IMD --------------------------------------------------------------------
+# Index of Multiple Deprivation --------------------------------------------------------------------
 # Load IMD variables from relevant sweeps
 imd_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>% select(NSID),
