@@ -1722,8 +1722,13 @@ bully_rec <- bully_all %>%
     bul17 = case_when(
       # If any of the 6 indicators of bullying in S4 is reported as "yes" (1) -> bullied (1)
       if_any(starts_with("bul17_"), ~ .x == 1) ~ 1,
-      # Else if all 6 indicators of bullying in S4 are reported as "no" (2) -> not bullied (0)
-      if_all(starts_with("bul17_"), ~ .x == 2) ~ 0,
+      # Not bullied:
+      # bul17_3 is only relevant when bul17_2 == 1
+      bul17_1 == 2 &
+      bul17_2 == 2 &
+      bul17_4 == 2 &
+      bul17_5 == 2 &
+      bul17_6 == 2 ~ 0,
       # Else if any of the 6 indicators of bullying in S4 is refused (-92, -97) -> refused (-9)
       if_any(starts_with("bul17_"), ~ .x == -92 | .x == -97) ~ -9,
       # Else if any of the 6 indicators of bullying in S4 is don't know/insufficient info (-1) -> -8
