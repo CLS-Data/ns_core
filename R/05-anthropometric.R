@@ -166,7 +166,7 @@ ht_rec %>%
 ht_all <- ht_rec %>%
   select(NSID, ht25, ht32, ht25_32)
 
-# BMI --------------------------------------------------------------------
+# Body Mass Index --------------------------------------------------------------------
 # Load BMI data from relevant sweeps
 bmi_vars <- list(
   S1 = ns_data[["S1youngperson"]] %>%
